@@ -39,7 +39,7 @@ export default function WorldMap({ data, onSelect }: Props) {
         width={900}
         height={500}
         style={{ width: "100%", height: "auto" }}
-        projectionConfig={{ scale: 140 }}
+        projectionConfig={{ scale: 180 }}
       >
         <Geographies geography={geoUrl}>
           {({ geographies }: { geographies: any[] }) =>
