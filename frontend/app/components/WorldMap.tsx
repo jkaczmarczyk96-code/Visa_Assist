@@ -6,6 +6,8 @@ import {
   Geography
 } from "react-simple-maps";
 import { useState } from "react";
+import { getCountry } from "../../../shared/countries";
+// nebo relativní cesta pokud nepoužíváš alias
 
 import React from "react";
 
@@ -18,6 +20,8 @@ const colorMap: Record<string, string> = {
   yellow: "#eab308",
   red: "#ef4444"
 };
+
+const countryExists = getCountry(name);
 
 type MapData = Record<string, any>;
 
@@ -57,35 +61,37 @@ export default function WorldMap({ data, onSelect }: Props) {
                 <Geography
                   key={geo.rsmKey}
                   geography={geo}
-                  fill={fill}
+                  fill={countryExists ? fill : "#020617"} // tmavé pro neaktivní
                   stroke="#0e1117"
-
-                  // ✅ FIX: zabrání focus boxu
-                  tabIndex={-1}
-                   onMouseDown={(e: React.MouseEvent<SVGPathElement>) => e.preventDefault()}
-
+                
                   onMouseEnter={() => {
+                    if (!countryExists) return;
                     setHovered({
                       name,
                       visa: item?.visa_name,
                       color: item?.visa_color
                     });
                   }}
+                
                   onMouseLeave={() => setHovered(null)}
-                  onClick={() => onSelect(name)}
-
+                
+                  onClick={() => {
+                    if (!countryExists) return;
+                    onSelect(name);
+                  }}
+                
                   style={{
-                    default: {
-                      outline: "none"
-                    },
-                    hover: {
-                      fill: "#60a5fa",
-                      cursor: "pointer",
-                      outline: "none"
-                    },
-                    pressed: {
-                      outline: "none"
-                    }
+                    default: { outline: "none" },
+                    hover: countryExists
+                      ? {
+                          fill: "#60a5fa",
+                          cursor: "pointer"
+                        }
+                      : {
+                          fill: "#020617",
+                          cursor: "default"
+                        },
+                    pressed: { outline: "none" }
                   }}
                 />
               );
