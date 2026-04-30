@@ -43,8 +43,6 @@ export default function AdminPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null)
 
-  const [auditLog, setAuditLog] = useState<Record<string, any>>({})
-
   const [form, setForm] = useState({
     status: '',
     visa_type: '',
@@ -72,27 +70,8 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (user) {
-      fetchData()
-      fetchAudit()
-    }
+    if (user) fetchData()
   }, [user, showNegative])
-
-  const fetchAudit = async () => {
-    const { data } = await supabase
-      .from('visa_cache')
-      .select('*')
-      .order('updated_at', { ascending: false })
-
-    const map: Record<string, any> = {}
-
-    data?.forEach((row: any) => {
-      const key = `${row.passport}-${row.country}`
-      if (!map[key]) map[key] = row
-    })
-
-    setAuditLog(map)
-  }
 
   const fetchData = async () => {
     setLoading(true)
@@ -130,13 +109,10 @@ export default function AdminPage() {
   const startEdit = (item: Feedback) => {
     setEditingId(item.id)
 
-    const key = `${item.passport}-${item.country}`
-    const audit = auditLog[key]
-
     setForm({
-      status: audit?.data?.status || item.result?.status || '',
-      visa_type: audit?.data?.visa_type || item.result?.visa_type || '',
-      max_stay: audit?.data?.max_stay || item.result?.max_stay || ''
+      status: item.result?.status || '',
+      visa_type: item.result?.visa_type || '',
+      max_stay: item.result?.max_stay || ''
     })
   }
 
@@ -156,7 +132,6 @@ export default function AdminPage() {
     })
 
     setEditingId(null)
-    fetchAudit()
   }
 
   // 📊 ANALYTICS
@@ -217,16 +192,43 @@ export default function AdminPage() {
   // 🔐 LOGIN UI
   if (!user) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0e1117', color: 'white', padding: 40 }}>
-        <div style={{ maxWidth: 400, margin: '0 auto' }}>
-          <h2>Admin přihlášení</h2>
+      <div style={{
+        minHeight: '100vh',
+        background: '#0b0f14',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white'
+      }}>
+        <div style={{
+          width: 360,
+          background: '#111827',
+          padding: 24,
+          borderRadius: 16,
+          border: '1px solid #1f2937'
+        }}>
+          <h2 style={{ marginBottom: 20 }}>Admin</h2>
 
-          <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" />
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Heslo" />
+          <input
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="Email"
+            style={inputStyle}
+          />
 
-          <button onClick={login}>Přihlásit</button>
+          <input
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="Heslo"
+            style={inputStyle}
+          />
 
-          {errorMsg && <p style={{ color: '#f87171' }}>{errorMsg}</p>}
+          <button onClick={login} style={primaryButton}>
+            Přihlásit
+          </button>
+
+          {errorMsg && <p style={{ color: '#ef4444' }}>{errorMsg}</p>}
         </div>
       </div>
     )
@@ -235,76 +237,36 @@ export default function AdminPage() {
   if (loading) return <div style={{ padding: 40 }}>Načítám...</div>
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0e1117', color: 'white', padding: 40 }}>
-      <div style={{ maxWidth: 800, margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', background: '#0b0f14', color: 'white', padding: 40 }}>
+      <div style={{ maxWidth: 900, margin: '0 auto' }}>
 
         {/* HEADER */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-          <div>
-            <h1>Admin Dashboard</h1>
-            <div style={{ color: '#9ca3af' }}>Feedback & úpravy</div>
-          </div>
-
-          <button onClick={logout}>Odhlásit</button>
+          <h1>Dashboard</h1>
+          <button onClick={logout} style={secondaryButton}>Odhlásit</button>
         </div>
 
-        {/* ANALYTICS BOX */}
-        <div style={{
-          background: '#111827',
-          border: '1px solid #2a2f3a',
-          borderRadius: 14,
-          padding: 16,
-          marginBottom: 20
-        }}>
-          <div style={{ marginBottom: 12, fontWeight: 600 }}>
-            📊 Analytics
-          </div>
+        {/* ANALYTICS */}
+        <div style={card}>
+          <div style={{ marginBottom: 10 }}>📊 Analytics</div>
 
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 20 }}>
             <div>Celkem: {total}</div>
             <div>👍 {positives}</div>
             <div>👎 {negatives}</div>
-            <div style={{ color: negativeRate > 30 ? '#ef4444' : '#9ca3af' }}>
-              Negativita: {negativeRate}%
-            </div>
-          </div>
-
-          {selectedCountry && (
-            <div
-              onClick={() => setSelectedCountry(null)}
-              style={{ fontSize: 12, color: '#9ca3af', cursor: 'pointer' }}
-            >
-              ✖ Zrušit filtr ({selectedCountry})
-            </div>
-          )}
-
-          {topCountries.map(([country, count]: any) => (
-            <div
-              key={country}
-              onClick={() => setSelectedCountry(country)}
-              style={{
-                cursor: 'pointer',
-                background: selectedCountry === country ? '#1f2937' : 'transparent'
-              }}
-            >
-              {country} ({count})
-            </div>
-          ))}
-
-          <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-            {last7Days.map((d, i) => (
-              <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-                <div style={{ fontSize: 10 }}>{d.label}</div>
-                <div>{d.count}</div>
-              </div>
-            ))}
+            <div>Negativita: {negativeRate}%</div>
           </div>
         </div>
 
         {/* FILTERS */}
-        <div style={{ marginBottom: 20, display: 'flex', gap: 10 }}>
-          <button onClick={() => setShowNegative(!showNegative)}>👎 Negativní</button>
-          <button onClick={() => setShowFlagged(!showFlagged)}>🚨 Flagged</button>
+        <div style={{ margin: '20px 0', display: 'flex', gap: 10 }}>
+          <button onClick={() => setShowNegative(!showNegative)} style={secondaryButton}>
+            👎 Negativní
+          </button>
+
+          <button onClick={() => setShowFlagged(!showFlagged)} style={secondaryButton}>
+            🚨 Flagged
+          </button>
         </div>
 
         {/* LIST */}
@@ -317,64 +279,96 @@ export default function AdminPage() {
           )
         ).map(([group, items]) => (
           <div key={group}>
-            <div style={{ color: '#9ca3af', margin: '10px 0 6px' }}>{group}</div>
+            <div style={{ color: '#6b7280', margin: '10px 0' }}>{group}</div>
 
-            {items.map(item => {
+            {items.map(item => (
+              <div key={item.id} style={card}>
 
-              const key = `${item.passport}-${item.country}`
-              const audit = auditLog[key]
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <strong>{item.passport} → {item.country}</strong>
 
-              return (
-                <div key={item.id} style={{
-                  background: '#111827',
-                  borderRadius: 14,
-                  padding: 16,
-                  marginBottom: 10
-                }}>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <strong>{item.passport} → {item.country}</strong>
-
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {audit?.data?.override && <span style={{ background: '#2563eb', padding: '2px 6px', borderRadius: 6 }}>override</span>}
-                      {isFlagged(item) && <span style={{ background: '#ef4444', padding: '2px 6px', borderRadius: 6 }}>🚨</span>}
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: 8 }}>{item.comment || '—'}</div>
-
-                  {audit?.updated_at && (
-                    <div style={{ fontSize: 12, color: '#6b7280' }}>
-                      Override: {new Date(audit.updated_at).toLocaleString('cs-CZ')}
-                    </div>
+                  {isFlagged(item) && (
+                    <span style={badgeRed}>🚨</span>
                   )}
-
-                  {editingId === item.id ? (
-                    <div style={{ marginTop: 10 }}>
-                      <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
-                        <option value="">Status</option>
-                        {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                      </select>
-
-                      <input
-                        placeholder="Max stay"
-                        value={form.max_stay}
-                        onChange={e => setForm({ ...form, max_stay: e.target.value })}
-                      />
-
-                      <button onClick={() => saveOverride(item)}>Uložit</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => startEdit(item)}>Upravit override</button>
-                  )}
-
                 </div>
-              )
-            })}
+
+                <div style={{ marginTop: 6 }}>{item.comment || '—'}</div>
+
+                {editingId === item.id ? (
+                  <div style={{ marginTop: 10 }}>
+                    <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} style={inputStyle}>
+                      <option value="">Status</option>
+                      {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    </select>
+
+                    <input
+                      value={form.max_stay}
+                      onChange={e => setForm({ ...form, max_stay: e.target.value })}
+                      placeholder="Max stay"
+                      style={inputStyle}
+                    />
+
+                    <button onClick={() => saveOverride(item)} style={primaryButton}>
+                      Uložit
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => startEdit(item)} style={secondaryButton}>
+                    Upravit
+                  </button>
+                )}
+
+              </div>
+            ))}
           </div>
         ))}
 
       </div>
     </div>
   )
+}
+
+/* 🎨 STYLY */
+
+const card = {
+  background: '#111827',
+  border: '1px solid #1f2937',
+  borderRadius: 16,
+  padding: 16,
+  marginBottom: 12
+}
+
+const inputStyle = {
+  width: '100%',
+  marginBottom: 10,
+  padding: 10,
+  borderRadius: 8,
+  border: '1px solid #1f2937',
+  background: '#0b0f14',
+  color: 'white'
+}
+
+const primaryButton = {
+  width: '100%',
+  padding: 10,
+  background: '#2563eb',
+  border: 'none',
+  borderRadius: 8,
+  color: 'white',
+  cursor: 'pointer'
+}
+
+const secondaryButton = {
+  padding: '6px 10px',
+  background: '#1f2937',
+  border: '1px solid #374151',
+  borderRadius: 8,
+  color: 'white',
+  cursor: 'pointer'
+}
+
+const badgeRed = {
+  background: '#ef4444',
+  padding: '2px 6px',
+  borderRadius: 6
 }
