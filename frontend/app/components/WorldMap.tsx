@@ -21,8 +21,6 @@ const colorMap: Record<string, string> = {
   red: "#ef4444"
 };
 
-const countryExists = getCountry(name);
-
 type MapData = Record<string, any>;
 
 type Props = {
@@ -50,6 +48,10 @@ export default function WorldMap({ data, onSelect }: Props) {
           {({ geographies }: { geographies: any[] }) =>
             geographies.map((geo: any) => {
               const name = geo?.properties?.name;
+
+              if (!name) return null;
+
+              const countryExists = getCountry(name);  
 
               const item = data?.[name];
 
