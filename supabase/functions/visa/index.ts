@@ -271,18 +271,7 @@ serve(async (req) => {
     const tb = await fetchTravelBuddy(passport, country);
     const wiki = await fetchWikipedia(passport, countryName);
     
-    // 🔥 validace TB
-    const tbValid =
-      tb &&
-      tb.visa_name &&
-      tb.visa_name.length > 3 &&
-      tb.visa_name !== "Unknown";
-    
-    // 🔥 výběr nejlepšího zdroje
-    const resultPicked = pickBestResult([
-      tbValid ? tb : null,
-      wiki
-    ]);
+    const resultPicked = pickBestResult([tb, wiki]);
     
     let result = resultPicked;
     
@@ -294,9 +283,9 @@ serve(async (req) => {
         source: "fallback"
       };
     }
-
-  result["source_priority"] =
-  result.source === "travel_buddy" ? "primary" : "fallback";
+    
+    result["source_priority"] =
+      result.source === "travel_buddy" ? "primary" : "fallback";
   
   // =========================
   // CONFIDENCE
