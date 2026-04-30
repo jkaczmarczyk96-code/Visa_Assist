@@ -189,9 +189,21 @@ export default function AdminPage() {
       <div style={container}>
 
         {/* HEADER */}
-        <div style={header}>
+       <div style={header}>
           <h1>Admin Dashboard</h1>
-          <button onClick={logout} style={ghostBtn}>Odhlásit</button>
+        
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={() => (window.location.href = '/')}
+              style={ghostBtn}
+            >
+              Domů
+            </button>
+        
+            <button onClick={logout} style={ghostBtn}>
+              Odhlásit
+            </button>
+          </div>
         </div>
 
         {/* ANALYTICS */}
