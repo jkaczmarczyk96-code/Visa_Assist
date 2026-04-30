@@ -73,6 +73,25 @@ function mapStatusToColor(status: string) {
 }
 
 // =========================
+// NORMALIZE DURATION
+// =========================
+function normalizeDuration(value: any): string {
+  if (!value || value === "") return "Není uvedeno";
+
+  const text = String(value).toLowerCase().trim();
+
+  if (text.includes("90")) return "90 dní";
+  if (text.includes("30")) return "30 dní";
+  if (text.includes("180")) return "180 dní";
+
+  if (text.includes("day") || text.includes("dní")) return value;
+
+  if (text.includes("varies") || text.includes("depends")) return "Liší se";
+
+  return value.length > 50 ? "Není uvedeno" : value;
+}
+
+// =========================
 // COLOR DETECTION (wiki)
 // =========================
 function detectColor(text: string) {
@@ -316,16 +335,18 @@ serve(async (req) => {
   // ✅ PRIORITA: Travel Buddy > Wikipedia
   let result = tb && tb.visa_name ? tb : wiki;
 
-  // 🔥 BONUS: označení zdroje kvality
-  if (result) {
-    result["source_priority"] = tb && tb.visa_name ? "primary" : "fallback";
-  
-  if (!result) {
-    result = {
-      visa_name: "Visa rules vary",
-      visa_duration: "Check embassy",
-      visa_color: "yellow",
-      source: "fallback"
+// 🔥 fallback MUSÍ být mimo
+if (!result) {
+  result = {
+    visa_name: "Unknown",
+    visa_duration: "Není uvedeno",
+    visa_color: "yellow",
+    source: "fallback"
+  };
+}
+
+// bonus info
+result["source_priority"] = tb && tb.visa_name ? "primary" : "fallback";
     };
   }
   
@@ -350,9 +371,12 @@ serve(async (req) => {
   result["flagged"] = neg >= 3;
   result["generated_at"] = new Date().toISOString();
 
+  result.visa_duration = normalizeDuration(result.visa_duration);
   // =========================
   // SAVE CACHE
   // =========================
+  result.visa_duration = normalizeDuration(result.visa_duration);
+
   await fetch(`${url}/rest/v1/visa_cache`, {
     method: "POST",
     headers: {
