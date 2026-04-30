@@ -223,7 +223,8 @@ export default function AdminPage() {
         
         <form
           method="post"
-          action="/"
+          action="#"
+          onSubmit={(e) => e.preventDefault()}
           style={{ display: 'none' }}
           id="fake-login-form"
         >
