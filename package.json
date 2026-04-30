@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.1",
+    "react-simple-maps": "^3.0.0"
+  }
+}
