@@ -7,8 +7,6 @@ import {
 } from "react-simple-maps";
 import { useState } from "react";
 import { getCountry } from "../../../shared/countries";
-// nebo relativní cesta pokud nepoužíváš alias
-
 import React from "react";
 
 const geoUrl =
@@ -29,7 +27,6 @@ type Props = {
 };
 
 export default function WorldMap({ data, onSelect }: Props) {
-
   const [hovered, setHovered] = useState<{
     name: string;
     visa?: string;
@@ -41,7 +38,7 @@ export default function WorldMap({ data, onSelect }: Props) {
       <ComposableMap
         width={1000}
         height={500}
-        style={{ width: "100%", height: "auto", userSelect: "none" }} // ✅ fix
+        style={{ width: "100%", height: "auto", userSelect: "none" }}
         projectionConfig={{ scale: 180 }}
       >
         <Geographies geography={geoUrl}>
@@ -51,8 +48,7 @@ export default function WorldMap({ data, onSelect }: Props) {
 
               if (!name) return null;
 
-              const countryExists = getCountry(name);  
-
+              const countryExists = !!getCountry(name);
               const item = data?.[name];
 
               const fill = item
@@ -63,9 +59,15 @@ export default function WorldMap({ data, onSelect }: Props) {
                 <Geography
                   key={geo.rsmKey}
                   geography={geo}
-                  fill={countryExists ? fill : "#262e4d"} // tmavé pro neaktivní
+                  fill={countryExists ? fill : "#020617"} // neaktivní státy
                   stroke="#0e1117"
-                
+
+                  // ❌ odstranění bílého rámečku (focus)
+                  tabIndex={-1}
+                  onMouseDown={(e: React.MouseEvent<SVGPathElement>) =>
+                    e.preventDefault()
+                  }
+
                   onMouseEnter={() => {
                     if (!countryExists) return;
                     setHovered({
@@ -74,26 +76,37 @@ export default function WorldMap({ data, onSelect }: Props) {
                       color: item?.visa_color
                     });
                   }}
-                
-                  onMouseLeave={() => setHovered(null)}
-                
+
+                  onMouseLeave={() => {
+                    if (!countryExists) return;
+                    setHovered(null);
+                  }}
+
                   onClick={() => {
                     if (!countryExists) return;
                     onSelect(name);
                   }}
-                
+
                   style={{
-                    default: { outline: "none" },
+                    default: {
+                      outline: "none",
+                      cursor: countryExists ? "pointer" : "default",
+                      pointerEvents: countryExists ? "auto" : "none" // 🧠 BONUS
+                    },
+
                     hover: countryExists
                       ? {
                           fill: "#60a5fa",
                           cursor: "pointer"
                         }
                       : {
-                          fill: "#081652",
+                          fill: "#020617", // žádná změna
                           cursor: "default"
                         },
-                    pressed: { outline: "none" }
+
+                    pressed: {
+                      outline: "none"
+                    }
                   }}
                 />
               );
@@ -105,37 +118,41 @@ export default function WorldMap({ data, onSelect }: Props) {
       {/* TOOLTIP */}
       <div style={{ marginTop: 12, minHeight: 60 }}>
         {hovered ? (
-          <div style={{
-            background: "#111827",
-            padding: "12px 16px",
-            borderRadius: 12,
-            border: "1px solid #2a2f3a",
-            textAlign: "center"
-          }}>
+          <div
+            style={{
+              background: "#111827",
+              padding: "12px 16px",
+              borderRadius: 12,
+              border: "1px solid #2a2f3a",
+              textAlign: "center"
+            }}
+          >
             {hovered.color && (
-              <div style={{
-                height: 4,
-                width: 60,
-                background: colorMap[hovered.color] || "#374151",
-                borderRadius: 4,
-                margin: "0 auto 8px"
-              }} />
+              <div
+                style={{
+                  height: 4,
+                  width: 60,
+                  background: colorMap[hovered.color] || "#374151",
+                  borderRadius: 4,
+                  margin: "0 auto 8px"
+                }}
+              />
             )}
 
-            <div style={{ fontWeight: 600 }}>
-              {hovered.name}
-            </div>
+            <div style={{ fontWeight: 600 }}>{hovered.name}</div>
 
             <div style={{ fontSize: 13, color: "#9ca3af" }}>
               {hovered.visa || "Žádná data"}
             </div>
           </div>
         ) : (
-          <div style={{
-            textAlign: "center",
-            color: "#6b7280",
-            fontSize: 13
-          }}>
+          <div
+            style={{
+              textAlign: "center",
+              color: "#6b7280",
+              fontSize: 13
+            }}
+          >
             Najetím na stát zobrazíš informace
           </div>
         )}
