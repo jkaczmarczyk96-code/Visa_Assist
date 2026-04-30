@@ -204,6 +204,8 @@ export default function Home() {
               background: "#111827",
               border: "1px solid #2a2f3a",
               borderRadius: 10,
+              position: "relative", 
+              zIndex: 20, 
               maxHeight: 220,
               overflowY: "auto"
             }}>
@@ -411,11 +413,12 @@ export default function Home() {
           </div>
         )}
 {/* 🌍 MAPA */}
-<WorldMap
-  data={mapData}
-  onSelect={handleMapSelect}
-/>
-</div>
+  <div style={{ marginTop: 40, position: "relative", zIndex: 10 }}>
+    <WorldMap
+      data={mapData}
+      onSelect={handleMapSelect}
+    />
+  </div>
 </div>
 );
 }
