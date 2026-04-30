@@ -57,21 +57,31 @@ export default function AdminPage() {
   }, [])
 
   const login = async (e: any) => {
-    e.preventDefault()
-  
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
-  
-    if (error) {
-      setErrorMsg(error.message)
-      return
-    }
-  
-    // 🔥 KLÍČOVÉ: navigace (NE reload)
-    window.location.href = '/admin'
+  e.preventDefault()
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  })
+
+  if (error) {
+    setErrorMsg(error.message)
+    return
   }
+
+  // 🔥 TADY ten trik
+  const form = document.getElementById('fake-login-form') as HTMLFormElement
+
+  if (form) {
+    const emailInput = form.querySelector('input[name="email"]') as HTMLInputElement
+    const passInput = form.querySelector('input[name="password"]') as HTMLInputElement
+
+    emailInput.value = email
+    passInput.value = password
+
+    form.submit() // 👉 browser si myslí, že proběhl login
+  }
+}
 
   const logout = async () => {
   await supabase.auth.signOut()
@@ -209,6 +219,16 @@ export default function AdminPage() {
           <button style={primaryBtn} type="submit">Přihlásit</button>
 
           {errorMsg && <div style={error}>{errorMsg}</div>}
+        </form>
+        
+        <form
+          method="post"
+          action="/"
+          style={{ display: 'none' }}
+          id="fake-login-form"
+        >
+          <input name="email" autoComplete="username" />
+          <input name="password" type="password" autoComplete="current-password" />
         </form>
       </div>
     )
