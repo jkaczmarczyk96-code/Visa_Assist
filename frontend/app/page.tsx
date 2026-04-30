@@ -277,7 +277,7 @@ export default function Home() {
             {/* VISA INFO */}
             <div style={{ lineHeight: 1.6 }}>
               <div style={{ marginBottom: 8 }}>
-                🛂 <b>Typ víza:</b> {result.visa_name}
+                🛂 <b>Typ víza:</b> {label}
               </div>
 
               <div>
