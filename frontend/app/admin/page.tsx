@@ -178,7 +178,7 @@ export default function AdminPage() {
   if (!user) {
     return (
       <div style={loginWrap}>
-        <<form
+        <form
           style={loginCard}
           method="post"
           onSubmit={login}
