@@ -303,8 +303,27 @@ export default function AdminPage() {
 
         {/* FILTERS */}
         <div style={filters}>
-          <button style={ghostBtn} onClick={() => setShowNegative(!showNegative)}>👎 Negativní</button>
-          <button style={ghostBtn} onClick={() => setShowFlagged(!showFlagged)}>🚨 Flagged</button>
+          <button style={ghostBtn}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#1e293b'
+              e.currentTarget.style.color = 'white'
+              e.currentTarget.style.border = '1px solid #3b82f6'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = '#cbd5f5'
+              e.currentTarget.style.border = '1px solid #475569' onClick={() => setShowNegative(!showNegative)}>👎 Negativní</button>
+              
+          <button style={ghostBtn}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#1e293b'
+              e.currentTarget.style.color = 'white'
+              e.currentTarget.style.border = '1px solid #3b82f6'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = '#cbd5f5'
+              e.currentTarget.style.border = '1px solid #475569' onClick={() => setShowFlagged(!showFlagged)}>🚨 Flagged</button>
         </div>
 
         {/* LIST */}
@@ -351,7 +370,16 @@ export default function AdminPage() {
                       <button style={primaryBtn} onClick={() => saveOverride(item)}>Uložit</button>
                     </>
                   ) : (
-                    <button style={ghostBtn} onClick={() => startEdit(item)}>Upravit</button>
+                    <button style={ghostBtn}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#1e293b'
+                        e.currentTarget.style.color = 'white'
+                        e.currentTarget.style.border = '1px solid #3b82f6'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent'
+                        e.currentTarget.style.color = '#cbd5f5'
+                        e.currentTarget.style.border = '1px solid #475569' onClick={() => startEdit(item)}>Upravit</button>
                   )}
                 </div>
 
