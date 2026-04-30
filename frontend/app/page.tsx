@@ -438,9 +438,7 @@ export default function Home() {
             onSelect={handleMapSelect}
           />
         </div>
-      {/* container */}
       </div> 
-    {/* page */}
     </div>   
   );
 }
