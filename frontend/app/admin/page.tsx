@@ -401,13 +401,13 @@ export default function AdminPage() {
                   <div style={{ display: 'flex', gap: 6 }}>
                     {isOverrideActive(item) && (
                         <span style={{
-                          background: "#2563eb",
+                          background: "#66ff00",
                           padding: "2px 6px",
                           borderRadius: 6,
                           fontSize: 11,
                           fontWeight: 600
                         }}>
-                          OR
+                          OR Active
                         </span>
                       )}
                     <span style={item.rating ? badgeGood : badgeBad}>
