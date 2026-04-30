@@ -412,12 +412,13 @@ export default function Home() {
 
           </div>
         )}
-{/* 🌍 MAPA */}
-  <div style={{ marginTop: 40, position: "relative", zIndex: 10 }}>
-    <WorldMap
-      data={mapData}
-      onSelect={handleMapSelect}
-    />
+  {/* 🌍 MAPA */}
+    <div style={{ marginTop: 40, position: "relative", zIndex: 10 }}>
+      <WorldMap
+        data={mapData}
+        onSelect={handleMapSelect}
+      />
+    </div>
   </div>
 </div>
 );
