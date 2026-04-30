@@ -56,18 +56,22 @@ export default function AdminPage() {
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
   }, [])
 
-  const login = async (e?: any) => {
-  if (e) e.preventDefault()
-
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
-
-  if (error) {
-    setErrorMsg(error.message)
-  } else {
-    // 🔥 KLÍČOVÉ
-    router.push('/admin')   // nebo '/'
+  const login = async (e: any) => {
+    e.preventDefault()
+  
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
+  
+    if (error) {
+      setErrorMsg(error.message)
+      return
+    }
+  
+    // 🔥 KLÍČOVÉ: navigace (NE reload)
+    window.location.href = '/admin'
   }
-}
 
   const logout = async () => {
   await supabase.auth.signOut()
@@ -174,13 +178,11 @@ export default function AdminPage() {
   if (!user) {
     return (
       <div style={loginWrap}>
-        <form
-            style={loginCard}
-            onSubmit={(e) => {
-              e.preventDefault()
-              login()
-            }}
-          >
+        <<form
+          style={loginCard}
+          method="post"
+          onSubmit={login}
+        >
           <h2>Admin login</h2>
 
           <label style={label}>Email</label>
