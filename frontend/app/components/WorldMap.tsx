@@ -36,7 +36,7 @@ export default function WorldMap({ data, onSelect }: Props) {
   return (
     <div style={{ marginTop: 30 }}>
       <ComposableMap
-        width={900}
+        width={1000}
         height={500}
         style={{ width: "100%", height: "auto" }}
         projectionConfig={{ scale: 180 }}
