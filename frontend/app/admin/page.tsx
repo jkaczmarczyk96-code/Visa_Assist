@@ -226,13 +226,34 @@ export default function AdminPage() {
         
           <div style={{ display: 'flex', gap: 10 }}>
             <button
-              onClick={() => (window.location.href = '/')}
               style={ghostBtn}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#1e293b'
+                e.currentTarget.style.color = 'white'
+                e.currentTarget.style.border = '1px solid #3b82f6'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.color = '#cbd5f5'
+                e.currentTarget.style.border = '1px solid #475569'
+              }}
             >
               Domů
             </button>
         
-            <button onClick={logout} style={ghostBtn}>
+            <button
+              style={ghostBtn}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#1e293b'
+                e.currentTarget.style.color = 'white'
+                e.currentTarget.style.border = '1px solid #3b82f6'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.color = '#cbd5f5'
+                e.currentTarget.style.border = '1px solid #475569'
+              }}
+            >
               Odhlásit
             </button>
           </div>
