@@ -7,6 +7,8 @@ import {
 } from "react-simple-maps";
 import { useState } from "react";
 
+import React from "react";
+
 const geoUrl =
   "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
@@ -60,7 +62,7 @@ export default function WorldMap({ data, onSelect }: Props) {
 
                   // ✅ FIX: zabrání focus boxu
                   tabIndex={-1}
-                  onMouseDown={(e) => e.preventDefault()}
+                   onMouseDown={(e: React.MouseEvent<SVGPathElement>) => e.preventDefault()}
 
                   onMouseEnter={() => {
                     setHovered({
