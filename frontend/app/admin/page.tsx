@@ -320,7 +320,9 @@ export default function AdminPage() {
             👎 Negativní
           </button>
           
-          <button style={ghostBtn}
+          <button
+            style={ghostBtn}
+            onClick={() => setShowFlagged(!showFlagged)}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = '#1e293b'
               e.currentTarget.style.color = 'white'
@@ -329,7 +331,11 @@ export default function AdminPage() {
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent'
               e.currentTarget.style.color = '#cbd5f5'
-              e.currentTarget.style.border = '1px solid #475569' onClick={() => setShowFlagged(!showFlagged)}>🚨 Flagged</button>
+              e.currentTarget.style.border = '1px solid #475569'
+            }}
+          >
+            🚨 Flagged
+          </button>
         </div>
 
         {/* LIST */}
