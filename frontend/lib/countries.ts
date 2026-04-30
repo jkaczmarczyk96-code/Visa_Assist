@@ -78,13 +78,33 @@ export const COUNTRIES_DATA: Country[] = [
 // 🔤 dropdown
 export const COUNTRIES = COUNTRIES_DATA.map(c => c.name).sort()
 
+// 🔧 NORMALIZE
+function normalize(str: string) {
+  return str.toLowerCase().trim().replace(/\s+/g, " ")
+}
+
+// 🔁 ALIASES (mapa / varianty názvů)
+const NAME_ALIASES: Record<string, string> = {
+  "united states of america": "United States",
+  "usa": "United States",
+  "uae": "United Arab Emirates"
+}
+
 // 🔍 helpers
 export function getCountry(name: string) {
-  return COUNTRIES_DATA.find(c => c.name === name)
+  const n = normalize(name)
+
+  const alias = NAME_ALIASES[n]
+  const finalName = alias || name
+
+  return COUNTRIES_DATA.find(
+    c => normalize(c.name) === normalize(finalName)
+  )
 }
 
 export function getCountryByIso(iso: string) {
-  return COUNTRIES_DATA.find(c => c.iso === iso)
+  const i = iso.toUpperCase().trim()
+  return COUNTRIES_DATA.find(c => c.iso === i)
 }
 
 export function toApiFormat(name: string) {
