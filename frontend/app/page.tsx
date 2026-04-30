@@ -112,7 +112,7 @@ export default function Home() {
       padding: "40px 20px",
       fontFamily: "system-ui, sans-serif"
     }}>
-      <div style={{ maxWidth: 520, margin: "0 auto" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
 
         {/* HEADER */}
         <div style={{ display: "flex", justifyContent: "space-between" }}>
