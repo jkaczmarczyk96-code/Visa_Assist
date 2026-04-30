@@ -312,7 +312,9 @@ export default function AdminPage() {
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent'
               e.currentTarget.style.color = '#cbd5f5'
-              e.currentTarget.style.border = '1px solid #475569' onClick={() => setShowNegative(!showNegative)}>👎 Negativní</button>
+              e.currentTarget.style.border = '1px solid #475569' 
+            onClick={() => setShowNegative(!showNegative)}👎 Negativní
+          </button>
               
           <button style={ghostBtn}
             onMouseEnter={(e) => {
