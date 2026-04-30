@@ -7,8 +7,8 @@ import {
   toApiFormat,
   getMzvCzLink,
   getMzvSkLink
-} from "@/shared/countries";
-import WorldMap from "./components/WorldMap";
+} from "../../shared/countries";
+import WorldMap from "../components/WorldMap";
 
 export default function Home() {
   const router = useRouter();
