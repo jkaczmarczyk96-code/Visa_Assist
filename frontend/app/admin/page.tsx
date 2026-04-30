@@ -45,9 +45,11 @@ export default function AdminPage() {
 
   const [form, setForm] = useState({
     status: '',
-    visa_type: '',
     max_stay: ''
   })
+
+  // 🔥 audit log
+  const [auditLog, setAuditLog] = useState<Record<string, any>>({})
 
   // 🔐 SESSION
   useEffect(() => {
@@ -74,8 +76,28 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (user) fetchData()
+    if (user) {
+      fetchData()
+      fetchAudit()
+    }
   }, [user, showNegative])
+
+  // 🔥 LOAD AUDIT (1. verze – ponecháno)
+  const fetchAudit = async () => {
+    const { data } = await supabase
+      .from('visa_cache')
+      .select('*')
+      .order('updated_at', { ascending: false })
+
+    const map: Record<string, any> = {}
+
+    data?.forEach((row: any) => {
+      const key = `${row.passport}-${row.country}`
+      if (!map[key]) map[key] = row
+    })
+
+    setAuditLog(map)
+  }
 
   const fetchData = async () => {
     setLoading(true)
@@ -116,10 +138,12 @@ export default function AdminPage() {
   const startEdit = (item: Feedback) => {
     setEditingId(item.id)
 
+    const key = `${item.passport}-${item.country}`
+    const audit = auditLog[key]
+
     setForm({
-      status: item.result?.status || '',
-      visa_type: item.result?.visa_type || '',
-      max_stay: item.result?.max_stay || ''
+      status: audit?.data?.status || '',
+      max_stay: audit?.data?.max_stay || ''
     })
   }
 
@@ -139,66 +163,51 @@ export default function AdminPage() {
     })
 
     setEditingId(null)
+    fetchAudit()
   }
 
-  // 📊 ANALYTICS
+  // 🔥 FETCH AUDIT (2. verze – ponecháno)
+  const fetchAudit = async () => {
+    const { data } = await supabase
+      .from('visa_cache')
+      .select('*')
+      .order('updated_at', { ascending: false })
+  
+    const map: Record<string, any> = {}
+  
+    data?.forEach((row: any) => {
+      const key = `${row.passport}-${row.country}`
+      if (!map[key]) map[key] = row
+    })
+  
+    setAuditLog(map)
+  }
+
   function groupByDate(items: Feedback[]) {
-  const groups: Record<string, Feedback[]> = {}
+    const groups: Record<string, Feedback[]> = {}
 
-  items.forEach(item => {
-    const date = new Date(item.created_at)
+    items.forEach(item => {
+      const date = new Date(item.created_at)
 
-    const today = new Date()
-    const yesterday = new Date()
-    yesterday.setDate(today.getDate() - 1)
+      const today = new Date()
+      const yesterday = new Date()
+      yesterday.setDate(today.getDate() - 1)
 
-    let label = date.toLocaleDateString('cs-CZ')
+      let label = date.toLocaleDateString('cs-CZ')
 
-    if (date.toDateString() === today.toDateString()) {
-      label = 'Dnes'
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      label = 'Včera'
-    }
+      if (date.toDateString() === today.toDateString()) {
+        label = 'Dnes'
+      } else if (date.toDateString() === yesterday.toDateString()) {
+        label = 'Včera'
+      }
 
-    if (!groups[label]) groups[label] = []
-    groups[label].push(item)
-  })
+      if (!groups[label]) groups[label] = []
+      groups[label].push(item)
+    })
 
-  return groups
-}
-  const total = data.length
-  const negatives = data.filter(d => d.rating === 0).length
-  const positives = total - negatives
+    return groups
+  }
 
-  const topCountries = Object.entries(
-  data.reduce((acc: any, item) => {
-    acc[item.country] = (acc[item.country] || 0) + 1
-    return acc
-  }, {})
-)
-  .sort((a: any, b: any) => b[1] - a[1])
-  .slice(0, 5)
-
-  const negativeRate = total > 0
-    ? Math.round((negatives / total) * 100)
-    : 0
-
-  const last7Days = Array.from({ length: 7 }).map((_, i) => {
-    const day = new Date()
-    day.setDate(day.getDate() - i)
-
-    const count = data.filter(item => {
-      const d = new Date(item.created_at)
-      return d.toDateString() === day.toDateString()
-    }).length
-
-    return {
-      label: day.toLocaleDateString('cs-CZ', { weekday: 'short' }),
-      count
-    }
-  }).reverse()
-
-  // 🔐 LOGIN
   if (!user) {
     return (
       <div style={{ minHeight: '100vh', background: '#0e1117', color: 'white', padding: 40 }}>
@@ -216,211 +225,113 @@ export default function AdminPage() {
     )
   }
 
+  if (loading) {
+    return <div style={{ padding: 40, color: 'white' }}>Načítám...</div>
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#0e1117', color: 'white', padding: 40 }}>
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
 
-        {/* HEADER */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-          <div>
-            <h1>Admin Dashboard</h1>
-            <div style={{ color: '#9ca3af' }}>Feedback & úpravy</div>
-          </div>
+        <h1>Admin Dashboard</h1>
 
-          <button
-            onClick={logout}
-            style={{
-              height: 32,
-              padding: '0 10px',
-              borderRadius: 6,
-              border: '1px solid #2a2f3a',
-              background: 'transparent',
-              color: '#9ca3af',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.color = 'white'
-              e.currentTarget.style.border = '1px solid #3b82f6'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.color = '#9ca3af'
-              e.currentTarget.style.border = '1px solid #2a2f3a'
-            }}
-          >
-            Odhlásit
-          </button>
-        </div>
-
-       {/* ANALYTICS */}
-        <div style={{
-          background: '#111827',
-          border: '1px solid #2a2f3a',
-          borderRadius: 14,
-          padding: 16,
-          marginBottom: 20
-        }}>
-
-          <div style={{ marginBottom: 12, fontWeight: 600 }}>
-            📊 Analytics
-          </div>
-
-          {/* MAIN STATS */}
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 16 }}>
-            <div>Celkem: {total}</div>
-            <div>👍 {positives}</div>
-            <div>👎 {negatives}</div>
-            <div style={{ color: negativeRate > 30 ? '#ef4444' : '#9ca3af' }}>
-              Negativita: {negativeRate}%
-            </div>
-          </div>
-
-          {/* TOP COUNTRIES */}
-        {selectedCountry && (
-          <div
-            onClick={() => setSelectedCountry(null)}
-            style={{
-              fontSize: 12,
-              color: '#9ca3af',
-              cursor: 'pointer',
-              marginBottom: 6
-            }}
-          >
-            ✖ Zrušit filtr ({selectedCountry})
-          </div>
-        )}
-
-        {topCountries.map(([country, count]: any) => (
-          <div
-            key={country}
-            onClick={() => setSelectedCountry(country)}
-            style={{
-              fontSize: 14,
-              cursor: 'pointer',
-              padding: '2px 6px',
-              borderRadius: 6,
-              background: selectedCountry === country ? '#1f2937' : 'transparent'
-            }}
-          >
-            {country} ({count})
-          </div>
-        ))}
-
-          {/* LAST 7 DAYS */}
-          <div>
-            <div style={{ color: '#9ca3af', marginBottom: 6 }}>
-              📈 Posledních 7 dní
-            </div>
-
-            <div style={{ display: 'flex', gap: 6 }}>
-              {last7Days.map((d, i) => (
-                <div key={i} style={{
-                  flex: 1,
-                  background: '#1f2937',
-                  borderRadius: 6,
-                  textAlign: 'center',
-                  padding: 6,
-                  fontSize: 12
-                }}>
-                  <div style={{ fontSize: 10, color: '#9ca3af' }}>
-                    {d.label}
-                  </div>
-                  <div>{d.count}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </div>
-
-        {/* FILTERS */}
-        <div style={{ marginBottom: 20, display: 'flex', gap: 10 }}>
-          <button
-            onClick={() => setShowNegative(!showNegative)}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 999,
-              border: '1px solid #2a2f3a',
-              background: '#111827',
-              color: 'white',
-              cursor: 'pointer'
-            }}
-          >
-            👎 Pouze negativní
-          </button>
-
-          <button
-            onClick={() => setShowFlagged(!showFlagged)}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 999,
-              border: '1px solid #2a2f3a',
-              background: '#111827',
-              color: 'white',
-              cursor: 'pointer'
-            }}
-          >
-            🚨 Flagované
-          </button>
-        </div>
-
-        {/* LIST */}
         {Object.entries(
-  groupByDate(
-    data.filter(item => !showFlagged || isFlagged(item))
-  )
-).map(([group, items]) => {
-  return (
-    <div key={group}>
+          groupByDate(
+            data.filter(item => !showFlagged || isFlagged(item))
+          )
+        ).map(([group, items]) => {
+          return (
+            <div key={group}>
 
-      {/* HEADER */}
-      <div style={{
-        color: '#9ca3af',
-        fontSize: 13,
-        margin: '10px 0 6px'
-      }}>
-        {group}
-      </div>
+              <div style={{ color: '#9ca3af', margin: '10px 0 6px' }}>
+                {group}
+              </div>
 
-      {/* ITEMS */}
-      {items.map((item) => {
-        return (
-          <div key={item.id} style={{
-            background: '#111827',
-            border: '1px solid #2a2f3a',
-            borderRadius: 14,
-            padding: 16,
-            marginBottom: 10
-          }}>
+              {items.map((item) => {
 
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <strong>{item.passport} → {item.country}</strong>
+                const key = `${item.passport}-${item.country}`
+                const audit = auditLog[key]
 
-              <span style={{
-                fontSize: 12,
-                padding: '2px 8px',
-                borderRadius: 6,
-                background: item.rating === 1 ? '#16a34a' : '#dc2626',
-                color: 'white'
-              }}>
-                {item.rating === 1 ? '👍 Pozitivní' : '👎 Negativní'}
-              </span>
+                return (
+                  <div key={item.id} style={{
+                    background: '#111827',
+                    border: '1px solid #2a2f3a',
+                    borderRadius: 14,
+                    padding: 16,
+                    marginBottom: 10
+                  }}>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <strong>{item.passport} → {item.country}</strong>
+
+                      <div style={{ display: 'flex', gap: 8 }}>
+
+                        {audit?.data?.override === true && (
+                          <span style={{
+                            fontSize: 11,
+                            background: '#2563eb',
+                            padding: '2px 6px',
+                            borderRadius: 6
+                          }}>
+                            override
+                          </span>
+                        )}
+
+                        <span style={{
+                          fontSize: 12,
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          background: item.rating === 1 ? '#16a34a' : '#dc2626',
+                          color: 'white'
+                        }}>
+                          {item.rating === 1 ? '👍' : '👎'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: 8, color: '#9ca3af' }}>
+                      {item.comment || '—'}
+                    </div>
+
+                    {audit?.updated_at && (
+                      <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
+                        Override: {new Date(audit.updated_at).toLocaleString('cs-CZ')}
+                      </div>
+                    )}
+
+                    {editingId === item.id ? (
+                      <div style={{ marginTop: 10 }}>
+                        <select
+                          value={form.status}
+                          onChange={e => setForm({ ...form, status: e.target.value })}
+                        >
+                          <option value="">Status</option>
+                          {STATUS_OPTIONS.map(s => (
+                            <option key={s.value} value={s.value}>{s.label}</option>
+                          ))}
+                        </select>
+
+                        <input
+                          placeholder="Max stay"
+                          value={form.max_stay}
+                          onChange={e => setForm({ ...form, max_stay: e.target.value })}
+                        />
+
+                        <button onClick={() => saveOverride(item)}>Uložit</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => startEdit(item)}>
+                        Upravit override
+                      </button>
+                    )}
+
+                  </div>
+                )
+              })}
+
             </div>
-
-            <div style={{ marginTop: 8, color: '#9ca3af' }}>
-              {item.comment || '—'}
-            </div>
-
-            <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
-              {new Date(item.created_at).toLocaleString('cs-CZ')}
-            </div>
-
-          </div>
-        )
-      })}
-
-    </div>
-  )
-})}
+          )
+        })}
 
       </div>
     </div>
