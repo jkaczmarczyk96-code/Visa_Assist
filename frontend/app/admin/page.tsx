@@ -401,7 +401,7 @@ export default function AdminPage() {
                   <div style={{ display: 'flex', gap: 6 }}>
                     {isOverrideActive(item) && (
                         <span style={{
-                          background: "#66ff00",
+                          background: "#32cd32",
                           padding: "2px 6px",
                           borderRadius: 6,
                           fontSize: 11,
