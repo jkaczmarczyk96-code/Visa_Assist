@@ -135,6 +135,16 @@ export default function Home() {
               color: "#9ca3af",
               fontSize: 14,
               cursor: "pointer"
+              style={ghostBtn}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#1e293b'
+                e.currentTarget.style.color = 'white'
+                e.currentTarget.style.border = '1px solid #3b82f6'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.color = '#cbd5f5'
+                e.currentTarget.style.border = '1px solid #475569'
             }}
           >
             Admin
