@@ -30,6 +30,8 @@ const STATUS_OPTIONS = [
 
 export default function AdminPage() {
 
+  const [savedMsg, setSavedMsg] = useState<string | null>(null);
+
   const [user, setUser] = useState<any>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -37,20 +39,26 @@ export default function AdminPage() {
 
   const [data, setData] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
 
   const [showNegative, setShowNegative] = useState(false)
   const [showFlagged, setShowFlagged] = useState(false)
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null)
 
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+
   const [flagged, setFlagged] = useState<Record<string, number>>({})
   const [editingId, setEditingId] = useState<string | null>(null)
+
+  const isOverrideActive = (item: Feedback) => {
+  const key = `${item.passport}-${toApiFormat(item.country)}`;
+  return !!overrides[key];
+  };
 
   const [form, setForm] = useState({
     status: '',
     visa_type: '',
     max_stay: ''
-  })
+  });
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
@@ -89,10 +97,11 @@ export default function AdminPage() {
     if (showNegative) query = query.eq('rating', 0)
 
     const { data } = await query
-    const fb = data as Feedback[]
+    const fb = (data || []) as Feedback[]
     setData(fb)
 
     const counts: Record<string, number> = {}
+
     fb.forEach(item => {
       if (item.rating === 0) {
         const key = `${item.passport}-${item.country}`
@@ -100,7 +109,23 @@ export default function AdminPage() {
       }
     })
 
-    setFlagged(counts)
+      setFlagged(counts)
+
+    const { data: cacheData } = await supabase
+      .from("visa_cache")
+      .select("passport, country, data");
+    
+      const map: Record<string, boolean> = {};
+      
+      (cacheData || []).forEach((row: any) => {
+        if (row.data?.override === true) {
+          const key = `${row.passport}-${row.country}`;
+          map[key] = true;
+        }
+      });
+      
+      setOverrides(map);
+      
     setLoading(false)
   }
 
@@ -130,6 +155,12 @@ export default function AdminPage() {
     })
 
     setEditingId(null)
+
+    setSavedMsg("Uloženo ✔");
+
+    setTimeout(() => {
+      setSavedMsg(null);
+    }, 2000);
   }
 
   function groupByDate(items: Feedback[]) {
@@ -243,6 +274,7 @@ export default function AdminPage() {
             </button>
         
             <button
+              onClick={logout}
               style={ghostBtn}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = '#1e293b'
@@ -258,6 +290,16 @@ export default function AdminPage() {
               Odhlásit
             </button>
           </div>
+                     {savedMsg && (
+              <div style={{
+                background: "#16a34a",
+                padding: "8px 12px",
+                borderRadius: 8,
+                fontSize: 14
+              }}>
+                {savedMsg}
+              </div>
+            )}
         </div>
 
         {/* ANALYTICS */}
@@ -357,6 +399,17 @@ export default function AdminPage() {
                 <div style={row}>
                   <strong>{item.passport} → {item.country}</strong>
                   <div style={{ display: 'flex', gap: 6 }}>
+                    {isOverrideActive(item) && (
+                        <span style={{
+                          background: "#2563eb",
+                          padding: "2px 6px",
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 600
+                        }}>
+                          OR
+                        </span>
+                      )}
                     <span style={item.rating ? badgeGood : badgeBad}>
                       {item.rating ? '👍' : '👎'}
                     </span>
