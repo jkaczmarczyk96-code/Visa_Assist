@@ -79,7 +79,7 @@ export default function AdminPage() {
     emailInput.value = email
     passInput.value = password
 
-    form.submit() // 👉 browser si myslí, že proběhl login
+    form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })) // 👉 browser si myslí, že proběhl login
   }
 }
 
