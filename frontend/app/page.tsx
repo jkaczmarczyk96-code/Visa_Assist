@@ -347,7 +347,7 @@ export default function Home() {
               </button>
             )}
 
-           {/* FEEDBACK */}
+          {/* FEEDBACK */}
             {!submitted && (
               <div style={{ marginTop: 20 }}>
                 <div style={{ marginBottom: 10, color: "#9ca3af" }}>
@@ -431,14 +431,20 @@ export default function Home() {
                 ✔ Feedback odeslán, děkujeme
               </div>
             )}
-     {/* 🌍 MAPA */}
-        <div style={{ marginTop: 40, position: "relative", zIndex: 10 }}>
-          <WorldMap
-            data={mapData}
-            onSelect={handleMapSelect}
-          />
-        </div>
-      </div> 
-    </div>   
-  );
-}
+            
+                    </div> 
+            
+                  )} 
+            
+                  {/* 🌍 MAPA */}
+                  <div style={{ marginTop: 40, position: "relative", zIndex: 10 }}>
+                    <WorldMap
+                      data={mapData}
+                      onSelect={handleMapSelect}
+                    />
+                  </div>
+            
+                </div> 
+              </div> 
+            );
+            }
