@@ -26,7 +26,6 @@ type Props = {
 
 export default function WorldMap({ data, onSelect }: Props) {
 
-  // 🔥 přidána barva
   const [hovered, setHovered] = useState<{
     name: string;
     visa?: string;
@@ -38,7 +37,7 @@ export default function WorldMap({ data, onSelect }: Props) {
       <ComposableMap
         width={1000}
         height={500}
-        style={{ width: "100%", height: "auto" }}
+        style={{ width: "100%", height: "auto", userSelect: "none" }} // ✅ fix
         projectionConfig={{ scale: 180 }}
       >
         <Geographies geography={geoUrl}>
@@ -58,22 +57,33 @@ export default function WorldMap({ data, onSelect }: Props) {
                   geography={geo}
                   fill={fill}
                   stroke="#0e1117"
+
+                  // ✅ FIX: zabrání focus boxu
+                  tabIndex={-1}
+                  onMouseDown={(e) => e.preventDefault()}
+
                   onMouseEnter={() => {
                     setHovered({
                       name,
                       visa: item?.visa_name,
-                      color: item?.visa_color // 🔥 důležité
+                      color: item?.visa_color
                     });
                   }}
                   onMouseLeave={() => setHovered(null)}
                   onClick={() => onSelect(name)}
+
                   style={{
-                    default: { outline: "none" },
+                    default: {
+                      outline: "none"
+                    },
                     hover: {
                       fill: "#60a5fa",
-                      cursor: "pointer"
+                      cursor: "pointer",
+                      outline: "none"
                     },
-                    pressed: { outline: "none" }
+                    pressed: {
+                      outline: "none"
+                    }
                   }}
                 />
               );
@@ -82,7 +92,7 @@ export default function WorldMap({ data, onSelect }: Props) {
         </Geographies>
       </ComposableMap>
 
-      {/* 🔥 TOOLTIP POD MAPOU */}
+      {/* TOOLTIP */}
       <div style={{ marginTop: 12, minHeight: 60 }}>
         {hovered ? (
           <div style={{
@@ -92,8 +102,6 @@ export default function WorldMap({ data, onSelect }: Props) {
             border: "1px solid #2a2f3a",
             textAlign: "center"
           }}>
-
-            {/* 🔥 BONUS: barevný indikátor */}
             {hovered.color && (
               <div style={{
                 height: 4,
