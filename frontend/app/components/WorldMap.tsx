@@ -56,7 +56,7 @@ export default function WorldMap({ data, onSelect }: Props) {
               const item = data?.[name];
 
               const fill = item
-                ? colorMap[item.visa_color] || "#0363fc"
+                ? colorMap[item.visa_color] || "#374151"
                 : "#1f2937";
 
               return (
