@@ -382,7 +382,9 @@ export default function AdminPage() {
                       <button style={primaryBtn} onClick={() => saveOverride(item)}>Uložit</button>
                     </>
                   ) : (
-                    <button style={ghostBtn}
+                    <button
+                      style={ghostBtn}
+                      onClick={() => startEdit(item)}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = '#1e293b'
                         e.currentTarget.style.color = 'white'
@@ -391,7 +393,11 @@ export default function AdminPage() {
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = 'transparent'
                         e.currentTarget.style.color = '#cbd5f5'
-                        e.currentTarget.style.border = '1px solid #475569' onClick={() => startEdit(item)}>Upravit</button>
+                        e.currentTarget.style.border = '1px solid #475569'
+                      }}
+                    >
+                      Upravit
+                    </button>
                   )}
                 </div>
 
