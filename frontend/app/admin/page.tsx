@@ -303,7 +303,9 @@ export default function AdminPage() {
 
         {/* FILTERS */}
         <div style={filters}>
-          <button style={ghostBtn}
+          <button
+            style={ghostBtn}
+            onClick={() => setShowNegative(!showNegative)}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = '#1e293b'
               e.currentTarget.style.color = 'white'
@@ -312,10 +314,12 @@ export default function AdminPage() {
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent'
               e.currentTarget.style.color = '#cbd5f5'
-              e.currentTarget.style.border = '1px solid #475569' 
-            onClick={() => setShowNegative(!showNegative)}👎 Negativní
+              e.currentTarget.style.border = '1px solid #475569'
+            }}
+          >
+            👎 Negativní
           </button>
-              
+          
           <button style={ghostBtn}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = '#1e293b'
