@@ -210,15 +210,6 @@ export default function AdminPage() {
 
           {errorMsg && <div style={error}>{errorMsg}</div>}
         </form>
-        
-        <form
-          style={loginCard}
-          method="post"
-          onSubmit={login}
-        >
-          <input name="email" autoComplete="username" />
-          <input name="password" type="password" autoComplete="current-password" />
-        </form>
       </div>
     )
   }
