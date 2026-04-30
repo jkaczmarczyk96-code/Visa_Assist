@@ -35,7 +35,7 @@ export default function WorldMap({ data, onSelect }: Props) {
 
   return (
     <div style={{ marginTop: 30 }}>
-      <ComposableMap projectionConfig={{ scale: 150 }}>
+      <ComposableMap projectionConfig={{ scale: 300 }}>
         <Geographies geography={geoUrl}>
           {({ geographies }: { geographies: any[] }) =>
             geographies.map((geo: any) => {
