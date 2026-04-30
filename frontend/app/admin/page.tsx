@@ -226,6 +226,7 @@ export default function AdminPage() {
         
           <div style={{ display: 'flex', gap: 10 }}>
             <button
+              onClick={() => (window.location.href = '/')}
               style={ghostBtn}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = '#1e293b'
