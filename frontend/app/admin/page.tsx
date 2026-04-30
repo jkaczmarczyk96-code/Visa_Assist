@@ -69,18 +69,8 @@ export default function AdminPage() {
     return
   }
 
-  // 🔥 TADY ten trik
-  const form = document.getElementById('fake-login-form') as HTMLFormElement
-
-  if (form) {
-    const emailInput = form.querySelector('input[name="email"]') as HTMLInputElement
-    const passInput = form.querySelector('input[name="password"]') as HTMLInputElement
-
-    emailInput.value = email
-    passInput.value = password
-
-    form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })) // 👉 browser si myslí, že proběhl login
-  }
+  // 👇 KLÍČOVÉ: reálná navigace
+  window.location.href = '/admin'
 }
 
   const logout = async () => {
@@ -222,11 +212,9 @@ export default function AdminPage() {
         </form>
         
         <form
+          style={loginCard}
           method="post"
-          action="#"
-          onSubmit={(e) => e.preventDefault()}
-          style={{ display: 'none' }}
-          id="fake-login-form"
+          onSubmit={login}
         >
           <input name="email" autoComplete="username" />
           <input name="password" type="password" autoComplete="current-password" />
