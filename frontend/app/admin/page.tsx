@@ -50,7 +50,6 @@ export default function AdminPage() {
     max_stay: ''
   })
 
-  // AUTH
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
   }, [])
@@ -167,10 +166,16 @@ export default function AdminPage() {
     return (
       <div style={loginWrap}>
         <div style={loginCard}>
-          <h2>Admin</h2>
-          <input style={input} placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-          <input style={input} type="password" placeholder="Heslo" value={password} onChange={e => setPassword(e.target.value)} />
+          <h2>Admin login</h2>
+
+          <label style={label}>Email</label>
+          <input style={input} value={email} onChange={e => setEmail(e.target.value)} />
+
+          <label style={label}>Heslo</label>
+          <input type="password" style={input} value={password} onChange={e => setPassword(e.target.value)} />
+
           <button style={primaryBtn} onClick={login}>Přihlásit</button>
+
           {errorMsg && <div style={error}>{errorMsg}</div>}
         </div>
       </div>
@@ -185,20 +190,26 @@ export default function AdminPage() {
 
         {/* HEADER */}
         <div style={header}>
-          <h1>Dashboard</h1>
+          <h1>Admin Dashboard</h1>
           <button onClick={logout} style={ghostBtn}>Odhlásit</button>
         </div>
 
         {/* ANALYTICS */}
-        <div style={card}>
-          <div style={stats}>
+        <div style={analyticsCard}>
+          <div style={analyticsGrid}>
             <Stat label="Celkem" value={total} />
-            <Stat label="👍" value={positives} />
-            <Stat label="👎" value={negatives} />
-            <Stat label="%" value={negativeRate} danger={negativeRate > 30} />
+            <Stat label="Pozitivní" value={positives} />
+            <Stat label="Negativní" value={negatives} />
+            <Stat label="Negativita" value={`${negativeRate}%`} danger={negativeRate > 30} />
           </div>
 
           <div style={divider} />
+
+          {selectedCountry && (
+            <div style={clearFilter} onClick={() => setSelectedCountry(null)}>
+              ✖ Zrušit filtr ({selectedCountry})
+            </div>
+          )}
 
           <div style={chips}>
             {topCountries.map(([c, n]: any) => (
@@ -207,7 +218,7 @@ export default function AdminPage() {
                 onClick={() => setSelectedCountry(c)}
                 style={{
                   ...chip,
-                  background: selectedCountry === c ? '#2563eb' : '#1e293b'
+                  background: selectedCountry === c ? '#3b82f6' : '#1e293b'
                 }}
               >
                 {c} ({n})
@@ -218,7 +229,7 @@ export default function AdminPage() {
           <div style={days}>
             {last7Days.map((d, i) => (
               <div key={i} style={dayBox}>
-                <div style={{ fontSize: 10 }}>{d.label}</div>
+                <div style={dayLabel}>{d.label}</div>
                 <div>{d.count}</div>
               </div>
             ))}
@@ -227,8 +238,8 @@ export default function AdminPage() {
 
         {/* FILTERS */}
         <div style={filters}>
-          <button style={ghostBtn} onClick={() => setShowNegative(!showNegative)}>Negativní</button>
-          <button style={ghostBtn} onClick={() => setShowFlagged(!showFlagged)}>Flagged</button>
+          <button style={ghostBtn} onClick={() => setShowNegative(!showNegative)}>👎 Negativní</button>
+          <button style={ghostBtn} onClick={() => setShowFlagged(!showFlagged)}>🚨 Flagged</button>
         </div>
 
         {/* LIST */}
@@ -263,11 +274,13 @@ export default function AdminPage() {
                 <div style={actions}>
                   {editingId === item.id ? (
                     <>
+                      <label style={label}>Status</label>
                       <select style={input} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
-                        <option value="">Status</option>
+                        <option value="">Vyber</option>
                         {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                       </select>
 
+                      <label style={label}>Max stay</label>
                       <input style={input} value={form.max_stay} onChange={e => setForm({ ...form, max_stay: e.target.value })} />
 
                       <button style={primaryBtn} onClick={() => saveOverride(item)}>Uložit</button>
@@ -289,52 +302,183 @@ export default function AdminPage() {
 
 /* STYLES */
 
-const page: CSSProperties = { padding: 40, background: '#0a0f1a', minHeight: '100vh', color: 'white' }
-const container: CSSProperties = { maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }
+const page: CSSProperties = {
+  padding: 40,
+  background: '#020617',
+  minHeight: '100vh',
+  color: 'white'
+}
 
-const header: CSSProperties = { display: 'flex', justifyContent: 'space-between' }
+const container: CSSProperties = {
+  maxWidth: 960,
+  margin: '0 auto',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 28
+}
 
-const card: CSSProperties = { background: '#0f172a', borderRadius: 16, padding: 18, border: '1px solid #1e293b' }
+const header: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center'
+}
 
-const stats: CSSProperties = { display: 'flex', gap: 20 }
+const analyticsCard: CSSProperties = {
+  background: '#0f172a',
+  borderRadius: 18,
+  padding: 20,
+  border: '1px solid #334155'
+}
 
-const chip: CSSProperties = { padding: '4px 10px', borderRadius: 999, cursor: 'pointer', fontSize: 12 }
-const chips: CSSProperties = { display: 'flex', gap: 6, flexWrap: 'wrap' }
+const analyticsGrid: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(4,1fr)',
+  gap: 20
+}
 
-const days: CSSProperties = { display: 'flex', gap: 6, marginTop: 10 }
-const dayBox: CSSProperties = { flex: 1, textAlign: 'center', padding: 6, background: '#020617', borderRadius: 6 }
+const card: CSSProperties = {
+  background: '#0f172a',
+  borderRadius: 16,
+  padding: 18,
+  border: '1px solid #334155'
+}
 
-const filters: CSSProperties = { display: 'flex', gap: 10 }
+const row: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center'
+}
 
-const row: CSSProperties = { display: 'flex', justifyContent: 'space-between' }
+const comment: CSSProperties = {
+  color: '#cbd5f5',
+  marginTop: 8,
+  lineHeight: 1.5
+}
 
-const actions: CSSProperties = { marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }
+const actions: CSSProperties = {
+  marginTop: 12,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 6
+}
 
-const input: CSSProperties = { padding: 10, borderRadius: 8, border: '1px solid #1e293b', background: '#020617', color: 'white' }
+const input: CSSProperties = {
+  padding: 10,
+  borderRadius: 8,
+  border: '1px solid #475569',
+  background: '#020617',
+  color: 'white'
+}
 
-const primaryBtn: CSSProperties = { padding: 10, borderRadius: 8, background: '#2563eb', border: 'none', color: 'white' }
-const ghostBtn: CSSProperties = { padding: '6px 10px', borderRadius: 8, border: '1px solid #1e293b', background: 'transparent', color: '#9ca3af' }
+const label: CSSProperties = {
+  fontSize: 12,
+  color: '#94a3b8',
+  marginTop: 6
+}
 
-const badgeGood: CSSProperties = { background: '#16a34a', padding: '2px 6px', borderRadius: 6 }
-const badgeBad: CSSProperties = { background: '#dc2626', padding: '2px 6px', borderRadius: 6 }
+const primaryBtn: CSSProperties = {
+  marginTop: 10,
+  padding: 10,
+  borderRadius: 8,
+  background: '#3b82f6',
+  border: 'none',
+  color: 'white',
+  cursor: 'pointer'
+}
+
+const ghostBtn: CSSProperties = {
+  padding: '6px 10px',
+  borderRadius: 8,
+  border: '1px solid #475569',
+  background: 'transparent',
+  color: '#cbd5f5',
+  cursor: 'pointer'
+}
+
+const badgeGood: CSSProperties = { background: '#22c55e', padding: '2px 6px', borderRadius: 6 }
+const badgeBad: CSSProperties = { background: '#ef4444', padding: '2px 6px', borderRadius: 6 }
 const badgeWarn: CSSProperties = { background: '#f59e0b', padding: '2px 6px', borderRadius: 6 }
 
-const divider: CSSProperties = { height: 1, background: '#1e293b', margin: '10px 0' }
+const divider: CSSProperties = {
+  height: 1,
+  background: '#334155',
+  margin: '10px 0'
+}
 
-const comment: CSSProperties = { color: '#9ca3af' }
+const chips: CSSProperties = {
+  display: 'flex',
+  gap: 8,
+  flexWrap: 'wrap',
+  marginTop: 10
+}
 
-const groupLabel: CSSProperties = { margin: '24px 0 8px', color: '#6b7280' }
+const chip: CSSProperties = {
+  padding: '4px 10px',
+  borderRadius: 999,
+  cursor: 'pointer'
+}
 
-const loginWrap: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }
-const loginCard: CSSProperties = { width: 320, padding: 24, background: '#0f172a', borderRadius: 16, display: 'flex', flexDirection: 'column', gap: 8 }
+const days: CSSProperties = {
+  display: 'flex',
+  gap: 6,
+  marginTop: 12
+}
+
+const dayBox: CSSProperties = {
+  flex: 1,
+  textAlign: 'center',
+  padding: 6,
+  background: '#020617',
+  borderRadius: 6
+}
+
+const dayLabel: CSSProperties = {
+  fontSize: 10,
+  color: '#94a3b8'
+}
+
+const filters: CSSProperties = {
+  display: 'flex',
+  gap: 10
+}
+
+const groupLabel: CSSProperties = {
+  margin: '24px 0 8px',
+  color: '#94a3b8'
+}
+
+const clearFilter: CSSProperties = {
+  fontSize: 12,
+  cursor: 'pointer',
+  marginBottom: 6,
+  color: '#cbd5f5'
+}
+
+const loginWrap: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: '100vh'
+}
+
+const loginCard: CSSProperties = {
+  width: 320,
+  padding: 24,
+  background: '#0f172a',
+  borderRadius: 16,
+  border: '1px solid #334155',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 8
+}
 
 const error: CSSProperties = { color: '#ef4444' }
 
 function Stat({ label, value, danger }: any) {
   return (
     <div>
-      <div style={{ fontSize: 12 }}>{label}</div>
-      <div style={{ color: danger ? '#ef4444' : 'white' }}>{value}</div>
+      <div style={{ fontSize: 12, color: '#94a3b8' }}>{label}</div>
+      <div style={{ fontSize: 18, color: danger ? '#ef4444' : 'white' }}>{value}</div>
     </div>
   )
 }
