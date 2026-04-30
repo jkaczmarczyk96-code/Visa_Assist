@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { toApiFormat } from '../../lib/countries'
 
@@ -36,6 +37,7 @@ export default function AdminPage() {
 
   const [data, setData] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   const [showNegative, setShowNegative] = useState(false)
   const [showFlagged, setShowFlagged] = useState(false)
@@ -54,18 +56,18 @@ export default function AdminPage() {
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
   }, [])
 
-  const login = async () => {
+  const login = async (e?: any) => {
+  if (e) e.preventDefault()
+
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (error) {
-      setErrorMsg(error.message)
-    } else {
-      // důležité: krátké zpoždění
-      setTimeout(() => {
-        location.reload()
-      }, 500)
-    }
+  if (error) {
+    setErrorMsg(error.message)
+  } else {
+    // 🔥 KLÍČOVÉ
+    router.push('/admin')   // nebo '/'
   }
+}
 
   const logout = async () => {
   await supabase.auth.signOut()
