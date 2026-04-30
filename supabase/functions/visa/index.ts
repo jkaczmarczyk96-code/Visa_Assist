@@ -104,7 +104,7 @@ async function fetchWikipedia(passport: string, country: string) {
     for (const row of rows) {
       const clean = row.replace(/<[^>]+>/g, " ").toLowerCase();
 
-      if (clean.includes(country.toLowerCase())) {
+      if (clean.startsWith(country.toLowerCase())) {
         return {
           visa_name: clean.slice(0, 100),
           visa_duration: "",
@@ -308,15 +308,18 @@ serve(async (req) => {
   // =========================
   // REAL DATA
   // =========================
-  const tb = await fetchTravelBuddy(passport, toApiFormat(country));
-  console.log("TB RESULT:", tb);
-
+  const apiCountry = toApiFormat(country);
+  
+  const tb = await fetchTravelBuddy(passport, apiCountry);
   const wiki = await fetchWikipedia(passport, country);
+  
+  // ✅ PRIORITA: Travel Buddy > Wikipedia
+  let result = tb && tb.visa_name ? tb : wiki;
 
-  const sources = [tb, wiki].filter(Boolean);
-
-  let result = pickBestResult(sources);
-
+  // 🔥 BONUS: označení zdroje kvality
+  if (result) {
+    result["source_priority"] = tb && tb.visa_name ? "primary" : "fallback";
+  
   if (!result) {
     result = {
       visa_name: "Visa rules vary",
@@ -325,6 +328,8 @@ serve(async (req) => {
       source: "fallback"
     };
   }
+  
+  console.log("FINAL RESULT:", result);
 
   // =========================
   // CONFIDENCE
