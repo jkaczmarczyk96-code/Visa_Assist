@@ -134,7 +134,7 @@ export default function Home() {
               background: "transparent",
               color: "#9ca3af",
               fontSize: 14,
-              cursor: "pointer"
+              cursor: "pointer",
               style={ghostBtn}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = '#1e293b'
