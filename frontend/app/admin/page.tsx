@@ -40,8 +40,6 @@ export default function AdminPage() {
   const [showFlagged, setShowFlagged] = useState(false)
 
   const [flagged, setFlagged] = useState<Record<string, number>>({})
-  const [auditLog, setAuditLog] = useState<Record<string, any>>({})
-
   const [editingId, setEditingId] = useState<string | null>(null)
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null)
 
@@ -50,6 +48,9 @@ export default function AdminPage() {
     visa_type: '',
     max_stay: ''
   })
+
+  // 🔥 AUDIT LOG
+  const [auditLog, setAuditLog] = useState<Record<string, any>>({})
 
   // 🔐 SESSION
   useEffect(() => {
@@ -76,12 +77,28 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (user) fetchData()
+    if (user) {
+      fetchData()
+      fetchAudit()
+    }
   }, [user, showNegative])
 
-  useEffect(() => {
-    if (data.length > 0) fetchAudit()
-  }, [data])
+  // 🔥 FETCH AUDIT
+  const fetchAudit = async () => {
+    const { data } = await supabase
+      .from('visa_cache')
+      .select('*')
+      .order('updated_at', { ascending: false })
+
+    const map: Record<string, any> = {}
+
+    data?.forEach((row: any) => {
+      const key = `${row.passport}-${row.country}`
+      if (!map[key]) map[key] = row
+    })
+
+    setAuditLog(map)
+  }
 
   const fetchData = async () => {
     setLoading(true)
@@ -114,21 +131,6 @@ export default function AdminPage() {
     setLoading(false)
   }
 
-  const fetchAudit = async () => {
-    const { data: audits } = await supabase
-      .from('visa_cache')
-      .select('*')
-
-    const map: Record<string, any> = {}
-
-    audits?.forEach((a: any) => {
-      const key = `${a.passport}-${a.country}`
-      map[key] = a
-    })
-
-    setAuditLog(map)
-  }
-
   const isFlagged = (item: Feedback) => {
     const key = `${item.passport}-${item.country}`
     return flagged[key] >= 3
@@ -137,15 +139,13 @@ export default function AdminPage() {
   const startEdit = (item: Feedback) => {
     setEditingId(item.id)
 
-    const key = `${item.passport}-${toApiFormat(item.country)}`
+    const key = `${item.passport}-${item.country}`
     const audit = auditLog[key]
 
-    const source = audit?.data || item.result
-
     setForm({
-      status: source?.status || '',
-      visa_type: source?.visa_type || '',
-      max_stay: source?.max_stay || ''
+      status: audit?.data?.status || item.result?.status || '',
+      visa_type: audit?.data?.visa_type || item.result?.visa_type || '',
+      max_stay: audit?.data?.max_stay || item.result?.max_stay || ''
     })
   }
 
@@ -165,7 +165,7 @@ export default function AdminPage() {
     })
 
     setEditingId(null)
-    await fetchAudit()
+    fetchAudit() // 🔥 refresh
   }
 
   // 📊 ANALYTICS
@@ -258,84 +258,119 @@ export default function AdminPage() {
           <button onClick={logout}>Odhlásit</button>
         </div>
 
-        {/* FILTERS */}
-        <div style={{ marginBottom: 20, display: 'flex', gap: 10 }}>
-          <button onClick={() => setShowNegative(!showNegative)}>
-            👎 Pouze negativní
-          </button>
-
-          <button onClick={() => setShowFlagged(!showFlagged)}>
-            🚨 Flagované
-          </button>
-        </div>
-
         {/* LIST */}
         {Object.entries(
           groupByDate(
-            data.filter(item => !showFlagged || isFlagged(item))
+            data.filter(item =>
+              (!showFlagged || isFlagged(item)) &&
+              (!selectedCountry || item.country === selectedCountry)
+            )
           )
-        ).map(([group, items]) => (
-          <div key={group}>
+        ).map(([group, items]) => {
 
-            <div style={{ color: '#9ca3af', margin: '10px 0 6px' }}>
-              {group}
-            </div>
+          return (
+            <div key={group}>
 
-            {items.map(item => {
-              const key = `${item.passport}-${toApiFormat(item.country)}`
-              const audit = auditLog[key]
+              <div style={{ color: '#9ca3af', margin: '10px 0 6px' }}>
+                {group}
+              </div>
 
-              return (
-                <div key={item.id} style={{
-                  background: '#111827',
-                  border: '1px solid #2a2f3a',
-                  borderRadius: 14,
-                  padding: 16,
-                  marginBottom: 10
-                }}>
+              {items.map((item) => {
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <strong>{item.passport} → {item.country}</strong>
+                const key = `${item.passport}-${item.country}`
+                const audit = auditLog[key]
 
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {audit?.data?.override && (
+                return (
+                  <div key={item.id} style={{
+                    background: '#111827',
+                    border: '1px solid #2a2f3a',
+                    borderRadius: 14,
+                    padding: 16,
+                    marginBottom: 10
+                  }}>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <strong>{item.passport} → {item.country}</strong>
+
+                      <div style={{ display: 'flex', gap: 8 }}>
+
+                        {audit?.data?.override && (
+                          <span style={{
+                            fontSize: 11,
+                            background: '#2563eb',
+                            padding: '2px 6px',
+                            borderRadius: 6
+                          }}>
+                            override
+                          </span>
+                        )}
+
+                        {isFlagged(item) && (
+                          <span style={{
+                            fontSize: 11,
+                            background: '#ef4444',
+                            padding: '2px 6px',
+                            borderRadius: 6
+                          }}>
+                            🚨
+                          </span>
+                        )}
+
                         <span style={{
-                          fontSize: 10,
-                          padding: '2px 6px',
+                          fontSize: 12,
+                          padding: '2px 8px',
                           borderRadius: 6,
-                          background: '#f59e0b'
+                          background: item.rating === 1 ? '#16a34a' : '#dc2626',
+                          color: 'white'
                         }}>
-                          override
+                          {item.rating === 1 ? '👍' : '👎'}
                         </span>
-                      )}
-
-                      <span style={{
-                        fontSize: 12,
-                        padding: '2px 8px',
-                        borderRadius: 6,
-                        background: item.rating === 1 ? '#16a34a' : '#dc2626'
-                      }}>
-                        {item.rating === 1 ? '👍' : '👎'}
-                      </span>
+                      </div>
                     </div>
+
+                    <div style={{ marginTop: 8, color: '#9ca3af' }}>
+                      {item.comment || '—'}
+                    </div>
+
+                    {audit?.updated_at && (
+                      <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
+                        Override: {new Date(audit.updated_at).toLocaleString('cs-CZ')}
+                      </div>
+                    )}
+
+                    {editingId === item.id ? (
+                      <div style={{ marginTop: 10 }}>
+                        <select
+                          value={form.status}
+                          onChange={e => setForm({ ...form, status: e.target.value })}
+                        >
+                          <option value="">Status</option>
+                          {STATUS_OPTIONS.map(s => (
+                            <option key={s.value} value={s.value}>{s.label}</option>
+                          ))}
+                        </select>
+
+                        <input
+                          placeholder="Max stay"
+                          value={form.max_stay}
+                          onChange={e => setForm({ ...form, max_stay: e.target.value })}
+                        />
+
+                        <button onClick={() => saveOverride(item)}>Uložit</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => startEdit(item)}>
+                        Upravit override
+                      </button>
+                    )}
+
                   </div>
+                )
+              })}
 
-                  {audit?.updated_at && (
-                    <div style={{ fontSize: 12, color: '#f59e0b' }}>
-                      Override: {new Date(audit.updated_at).toLocaleString('cs-CZ')}
-                    </div>
-                  )}
-
-                  <div style={{ marginTop: 8 }}>{item.comment || '—'}</div>
-
-                  <button onClick={() => startEdit(item)}>Edit</button>
-
-                </div>
-              )
-            })}
-
-          </div>
-        ))}
+            </div>
+          )
+        })}
 
       </div>
     </div>
