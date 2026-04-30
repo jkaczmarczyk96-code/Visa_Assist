@@ -149,6 +149,7 @@ export default function Home() {
           >
             Admin
           </button>
+        </div>
 
         <div style={{ marginTop: 30 }} />
 
