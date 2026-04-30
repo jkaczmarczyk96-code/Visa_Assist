@@ -63,7 +63,7 @@ export default function WorldMap({ data, onSelect }: Props) {
                 <Geography
                   key={geo.rsmKey}
                   geography={geo}
-                  fill={countryExists ? fill : "#020617"} // tmavé pro neaktivní
+                  fill={countryExists ? fill : "#081652"} // tmavé pro neaktivní
                   stroke="#0e1117"
                 
                   onMouseEnter={() => {
@@ -90,7 +90,7 @@ export default function WorldMap({ data, onSelect }: Props) {
                           cursor: "pointer"
                         }
                       : {
-                          fill: "#020617",
+                          fill: "#081652",
                           cursor: "default"
                         },
                     pressed: { outline: "none" }
