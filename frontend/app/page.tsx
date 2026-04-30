@@ -86,6 +86,13 @@ export default function Home() {
     });
 
     setSubmitted(true);
+
+    setShowComment(false);
+      setComment("");
+
+    setTimeout(() => {
+      setSubmitted(false);
+      }, 3000);
   }
 
   const statusMap: any = {
@@ -340,13 +347,13 @@ export default function Home() {
               </button>
             )}
 
-            {/* FEEDBACK */}
+           {/* FEEDBACK */}
             {!submitted && (
               <div style={{ marginTop: 20 }}>
                 <div style={{ marginBottom: 10, color: "#9ca3af" }}>
                   💬 Pomohl ti výsledek?
                 </div>
-
+            
                 <div style={{ display: "flex", gap: 10 }}>
                   <button
                     onClick={() => sendFeedback(1)}
@@ -360,7 +367,7 @@ export default function Home() {
                   >
                     👍
                   </button>
-
+            
                   <button
                     onClick={() => setShowComment(true)}
                     style={{
@@ -374,7 +381,7 @@ export default function Home() {
                     👎
                   </button>
                 </div>
-
+            
                 {showComment && (
                   <div style={{ marginTop: 12 }}>
                     <textarea
@@ -390,7 +397,7 @@ export default function Home() {
                         color: "white"
                       }}
                     />
-
+            
                     <button
                       onClick={() => sendFeedback(0, comment)}
                       style={{
@@ -409,9 +416,21 @@ export default function Home() {
                 )}
               </div>
             )}
-
-          </div>
-        )}
+            
+            {submitted && (
+              <div style={{
+                marginTop: 20,
+                padding: 14,
+                borderRadius: 10,
+                background: "#052e1f",
+                border: "1px solid #065f46",
+                color: "#6ee7b7",
+                textAlign: "center",
+                fontWeight: 600
+              }}>
+                ✔ Feedback odeslán, děkujeme
+              </div>
+            )}
   {/* 🌍 MAPA */}
     <div style={{ marginTop: 40, position: "relative", zIndex: 10 }}>
       <WorldMap
