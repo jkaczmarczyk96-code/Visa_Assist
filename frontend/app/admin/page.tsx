@@ -165,19 +165,38 @@ export default function AdminPage() {
   if (!user) {
     return (
       <div style={loginWrap}>
-        <div style={loginCard}>
+        <form
+            style={loginCard}
+            onSubmit={(e) => {
+              e.preventDefault()
+              login()
+            }}
+          >
           <h2>Admin login</h2>
 
           <label style={label}>Email</label>
-          <input style={input} value={email} onChange={e => setEmail(e.target.value)} />
+          <input
+            style={input}
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            name="email"
+            autoComplete="email"
+          />
 
           <label style={label}>Heslo</label>
-          <input type="password" style={input} value={password} onChange={e => setPassword(e.target.value)} />
+          <input
+            type="password"
+            style={input}
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            name="password"
+            autoComplete="current-password"
+          />
 
-          <button style={primaryBtn} onClick={login}>Přihlásit</button>
+          <button style={primaryBtn} type="submit">Přihlásit</button>
 
           {errorMsg && <div style={error}>{errorMsg}</div>}
-        </div>
+        </form>
       </div>
     )
   }
