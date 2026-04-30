@@ -166,23 +166,6 @@ export default function AdminPage() {
     fetchAudit()
   }
 
-  // 🔥 FETCH AUDIT (2. verze – ponecháno)
-  const fetchAudit = async () => {
-    const { data } = await supabase
-      .from('visa_cache')
-      .select('*')
-      .order('updated_at', { ascending: false })
-  
-    const map: Record<string, any> = {}
-  
-    data?.forEach((row: any) => {
-      const key = `${row.passport}-${row.country}`
-      if (!map[key]) map[key] = row
-    })
-  
-    setAuditLog(map)
-  }
-
   function groupByDate(items: Feedback[]) {
     const groups: Record<string, Feedback[]> = {}
 
