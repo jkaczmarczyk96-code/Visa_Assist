@@ -51,20 +51,21 @@ export default function AdminPage() {
     max_stay: ''
   })
 
-  // SESSION
+  // 🔐 SESSION
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user)
     })
   }, [])
 
-  // LOGIN
+  // 🔐 LOGIN
   const login = async () => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) setErrorMsg(error.message)
     else location.reload()
   }
 
+  // 🔐 LOGOUT
   const logout = async () => {
     await supabase.auth.signOut()
     location.reload()
@@ -158,14 +159,21 @@ export default function AdminPage() {
     fetchAudit()
   }
 
+  // 📊 ANALYTICS
   function groupByDate(items: Feedback[]) {
     const groups: Record<string, Feedback[]> = {}
 
     items.forEach(item => {
       const date = new Date(item.created_at)
+
+      const today = new Date()
+      const yesterday = new Date()
+      yesterday.setDate(today.getDate() - 1)
+
       let label = date.toLocaleDateString('cs-CZ')
 
-      if (date.toDateString() === new Date().toDateString()) label = 'Dnes'
+      if (date.toDateString() === today.toDateString()) label = 'Dnes'
+      else if (date.toDateString() === yesterday.toDateString()) label = 'Včera'
 
       if (!groups[label]) groups[label] = []
       groups[label].push(item)
@@ -174,52 +182,51 @@ export default function AdminPage() {
     return groups
   }
 
-  // LOGIN UI (HEZKÉ)
+  const total = data.length
+  const negatives = data.filter(d => d.rating === 0).length
+  const positives = total - negatives
+
+  const topCountries = Object.entries(
+    data.reduce((acc: any, item) => {
+      acc[item.country] = (acc[item.country] || 0) + 1
+      return acc
+    }, {})
+  )
+    .sort((a: any, b: any) => b[1] - a[1])
+    .slice(0, 5)
+
+  const negativeRate = total > 0
+    ? Math.round((negatives / total) * 100)
+    : 0
+
+  const last7Days = Array.from({ length: 7 }).map((_, i) => {
+    const day = new Date()
+    day.setDate(day.getDate() - i)
+
+    const count = data.filter(item => {
+      const d = new Date(item.created_at)
+      return d.toDateString() === day.toDateString()
+    }).length
+
+    return {
+      label: day.toLocaleDateString('cs-CZ', { weekday: 'short' }),
+      count
+    }
+  }).reverse()
+
+  // 🔐 LOGIN UI
   if (!user) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: '#0e1117',
-        color: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{
-          background: '#111827',
-          padding: 30,
-          borderRadius: 14,
-          border: '1px solid #2a2f3a',
-          width: 320
-        }}>
-          <h2 style={{ marginBottom: 20 }}>Admin login</h2>
+      <div style={{ minHeight: '100vh', background: '#0e1117', color: 'white', padding: 40 }}>
+        <div style={{ maxWidth: 400, margin: '0 auto' }}>
+          <h2>Admin přihlášení</h2>
 
-          <input
-            placeholder="Email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            style={{ width: '100%', marginBottom: 10, padding: 10 }}
-          />
+          <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" />
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Heslo" />
 
-          <input
-            type="password"
-            placeholder="Heslo"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            style={{ width: '100%', marginBottom: 10, padding: 10 }}
-          />
+          <button onClick={login}>Přihlásit</button>
 
-          <button onClick={login} style={{
-            width: '100%',
-            padding: 10,
-            background: '#2563eb',
-            borderRadius: 8,
-            color: 'white'
-          }}>
-            Přihlásit
-          </button>
-
-          {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}
+          {errorMsg && <p style={{ color: '#f87171' }}>{errorMsg}</p>}
         </div>
       </div>
     )
@@ -228,37 +235,109 @@ export default function AdminPage() {
   if (loading) return <div style={{ padding: 40 }}>Načítám...</div>
 
   return (
-    <div style={{ background: '#0e1117', minHeight: '100vh', padding: 40, color: 'white' }}>
+    <div style={{ minHeight: '100vh', background: '#0e1117', color: 'white', padding: 40 }}>
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <h1>Admin Dashboard</h1>
-          <button onClick={logout}>Logout</button>
+        {/* HEADER */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div>
+            <h1>Admin Dashboard</h1>
+            <div style={{ color: '#9ca3af' }}>Feedback & úpravy</div>
+          </div>
+
+          <button onClick={logout}>Odhlásit</button>
         </div>
 
-        {Object.entries(groupByDate(data)).map(([group, items]) => (
-          <div key={group}>
+        {/* ANALYTICS BOX */}
+        <div style={{
+          background: '#111827',
+          border: '1px solid #2a2f3a',
+          borderRadius: 14,
+          padding: 16,
+          marginBottom: 20
+        }}>
+          <div style={{ marginBottom: 12, fontWeight: 600 }}>
+            📊 Analytics
+          </div>
 
-            <div style={{ marginTop: 20, color: '#9ca3af' }}>{group}</div>
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 16 }}>
+            <div>Celkem: {total}</div>
+            <div>👍 {positives}</div>
+            <div>👎 {negatives}</div>
+            <div style={{ color: negativeRate > 30 ? '#ef4444' : '#9ca3af' }}>
+              Negativita: {negativeRate}%
+            </div>
+          </div>
+
+          {selectedCountry && (
+            <div
+              onClick={() => setSelectedCountry(null)}
+              style={{ fontSize: 12, color: '#9ca3af', cursor: 'pointer' }}
+            >
+              ✖ Zrušit filtr ({selectedCountry})
+            </div>
+          )}
+
+          {topCountries.map(([country, count]: any) => (
+            <div
+              key={country}
+              onClick={() => setSelectedCountry(country)}
+              style={{
+                cursor: 'pointer',
+                background: selectedCountry === country ? '#1f2937' : 'transparent'
+              }}
+            >
+              {country} ({count})
+            </div>
+          ))}
+
+          <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+            {last7Days.map((d, i) => (
+              <div key={i} style={{ flex: 1, textAlign: 'center' }}>
+                <div style={{ fontSize: 10 }}>{d.label}</div>
+                <div>{d.count}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* FILTERS */}
+        <div style={{ marginBottom: 20, display: 'flex', gap: 10 }}>
+          <button onClick={() => setShowNegative(!showNegative)}>👎 Negativní</button>
+          <button onClick={() => setShowFlagged(!showFlagged)}>🚨 Flagged</button>
+        </div>
+
+        {/* LIST */}
+        {Object.entries(
+          groupByDate(
+            data.filter(item =>
+              (!showFlagged || isFlagged(item)) &&
+              (!selectedCountry || item.country === selectedCountry)
+            )
+          )
+        ).map(([group, items]) => (
+          <div key={group}>
+            <div style={{ color: '#9ca3af', margin: '10px 0 6px' }}>{group}</div>
 
             {items.map(item => {
+
               const key = `${item.passport}-${item.country}`
               const audit = auditLog[key]
 
               return (
                 <div key={item.id} style={{
                   background: '#111827',
-                  borderRadius: 12,
+                  borderRadius: 14,
                   padding: 16,
-                  marginTop: 10
+                  marginBottom: 10
                 }}>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <strong>{item.passport} → {item.country}</strong>
 
                     <div style={{ display: 'flex', gap: 6 }}>
-                      {audit?.data?.override && <span style={{ fontSize: 11, background: '#2563eb', padding: '2px 6px', borderRadius: 6 }}>override</span>}
-                      {isFlagged(item) && <span style={{ fontSize: 11, background: '#ef4444', padding: '2px 6px', borderRadius: 6 }}>🚨</span>}
+                      {audit?.data?.override && <span style={{ background: '#2563eb', padding: '2px 6px', borderRadius: 6 }}>override</span>}
+                      {isFlagged(item) && <span style={{ background: '#ef4444', padding: '2px 6px', borderRadius: 6 }}>🚨</span>}
                     </div>
                   </div>
 
@@ -286,7 +365,7 @@ export default function AdminPage() {
                       <button onClick={() => saveOverride(item)}>Uložit</button>
                     </div>
                   ) : (
-                    <button onClick={() => startEdit(item)}>Upravit</button>
+                    <button onClick={() => startEdit(item)}>Upravit override</button>
                   )}
 
                 </div>
