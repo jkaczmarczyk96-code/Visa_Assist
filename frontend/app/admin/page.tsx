@@ -30,7 +30,6 @@ const STATUS_OPTIONS = [
 export default function AdminPage() {
 
   const [user, setUser] = useState<any>(null)
-
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
@@ -50,11 +49,8 @@ export default function AdminPage() {
     max_stay: ''
   })
 
-  // SESSION
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user)
-    })
+    supabase.auth.getUser().then(({ data }) => setUser(data.user))
   }, [])
 
   const login = async () => {
@@ -75,21 +71,15 @@ export default function AdminPage() {
   const fetchData = async () => {
     setLoading(true)
 
-    let query = supabase
-      .from('feedback')
-      .select('*')
-      .order('created_at', { ascending: false })
-
+    let query = supabase.from('feedback').select('*').order('created_at', { ascending: false })
     if (showNegative) query = query.eq('rating', 0)
 
     const { data } = await query
-
     const fb = data as Feedback[]
     setData(fb)
 
     const counts: Record<string, number> = {}
-
-    fb.forEach((item) => {
+    fb.forEach(item => {
       if (item.rating === 0) {
         const key = `${item.passport}-${item.country}`
         counts[key] = (counts[key] || 0) + 1
@@ -101,8 +91,7 @@ export default function AdminPage() {
   }
 
   const isFlagged = (item: Feedback) => {
-    const key = `${item.passport}-${item.country}`
-    return flagged[key] >= 3
+    return flagged[`${item.passport}-${item.country}`] >= 3
   }
 
   const startEdit = (item: Feedback) => {
@@ -137,7 +126,6 @@ export default function AdminPage() {
 
     items.forEach(item => {
       const date = new Date(item.created_at)
-
       const today = new Date()
       const yesterday = new Date()
       yesterday.setDate(today.getDate() - 1)
@@ -157,6 +145,7 @@ export default function AdminPage() {
   const total = data.length
   const negatives = data.filter(d => d.rating === 0).length
   const positives = total - negatives
+  const negativeRate = total ? Math.round((negatives / total) * 100) : 0
 
   const topCountries = Object.entries(
     data.reduce((acc: any, item) => {
@@ -165,34 +154,25 @@ export default function AdminPage() {
     }, {})
   ).sort((a: any, b: any) => b[1] - a[1]).slice(0, 5)
 
-  const negativeRate = total > 0 ? Math.round((negatives / total) * 100) : 0
-
   const last7Days = Array.from({ length: 7 }).map((_, i) => {
-    const day = new Date()
-    day.setDate(day.getDate() - i)
-
-    const count = data.filter(item => {
-      const d = new Date(item.created_at)
-      return d.toDateString() === day.toDateString()
-    }).length
-
+    const d = new Date()
+    d.setDate(d.getDate() - i)
     return {
-      label: day.toLocaleDateString('cs-CZ', { weekday: 'short' }),
-      count
+      label: d.toLocaleDateString('cs-CZ', { weekday: 'short' }),
+      count: data.filter(x => new Date(x.created_at).toDateString() === d.toDateString()).length
     }
   }).reverse()
 
   // LOGIN
   if (!user) {
     return (
-      <div style={loginWrapper}>
+      <div style={loginWrap}>
         <div style={loginCard}>
-          <h2 style={{ marginBottom: 20 }}>Admin</h2>
+          <h2 style={{ marginBottom: 12 }}>Admin</h2>
+          <p style={mutedSmall}>Přihlášení do dashboardu</p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <input style={input} placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-            <input style={input} type="password" placeholder="Heslo" value={password} onChange={e => setPassword(e.target.value)} />
-          </div>
+          <input style={input} placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+          <input style={input} type="password" placeholder="Heslo" value={password} onChange={e => setPassword(e.target.value)} />
 
           <button style={primaryBtn} onClick={login}>Přihlásit</button>
 
@@ -211,40 +191,42 @@ export default function AdminPage() {
         {/* HEADER */}
         <div style={header}>
           <div>
-            <h1>Dashboard</h1>
+            <h1 style={{ marginBottom: 4 }}>Dashboard</h1>
             <div style={muted}>Feedback & overrides</div>
           </div>
-          <button onClick={logout} style={secondaryBtn}>Odhlásit</button>
+          <button onClick={logout} style={ghostBtn}>Odhlásit</button>
         </div>
 
         {/* ANALYTICS */}
-        <div style={card}>
-          <div style={sectionTitle}>📊 Analytics</div>
+        <div style={cardSoft}>
+          <div style={sectionTitle}>Analytics</div>
 
-          <div style={statsRow}>
+          <div style={grid4}>
             <Stat label="Celkem" value={total} />
-            <Stat label="👍" value={positives} />
-            <Stat label="👎" value={negatives} />
+            <Stat label="Pozitivní" value={positives} />
+            <Stat label="Negativní" value={negatives} />
             <Stat label="Negativita" value={`${negativeRate}%`} danger={negativeRate > 30} />
           </div>
 
+          <div style={divider} />
+
           {selectedCountry && (
             <div style={clearFilter} onClick={() => setSelectedCountry(null)}>
-              ✖ Zrušit filtr ({selectedCountry})
+              Zrušit filtr ({selectedCountry})
             </div>
           )}
 
-          <div style={{ marginTop: 10 }}>
-            {topCountries.map(([country, count]: any) => (
+          <div style={countryList}>
+            {topCountries.map(([c, count]: any) => (
               <div
-                key={country}
-                onClick={() => setSelectedCountry(country)}
+                key={c}
+                onClick={() => setSelectedCountry(c)}
                 style={{
-                  ...countryItem,
-                  background: selectedCountry === country ? '#1f2937' : 'transparent'
+                  ...chip,
+                  background: selectedCountry === c ? '#2563eb' : '#1f2937'
                 }}
               >
-                {country} ({count})
+                {c} ({count})
               </div>
             ))}
           </div>
@@ -261,12 +243,8 @@ export default function AdminPage() {
 
         {/* FILTERS */}
         <div style={filters}>
-          <button onClick={() => setShowNegative(!showNegative)} style={secondaryBtn}>
-            👎 Negativní
-          </button>
-          <button onClick={() => setShowFlagged(!showFlagged)} style={secondaryBtn}>
-            🚨 Flagged
-          </button>
+          <button style={ghostBtn} onClick={() => setShowNegative(!showNegative)}>👎 Negativní</button>
+          <button style={ghostBtn} onClick={() => setShowFlagged(!showFlagged)}>🚨 Flagged</button>
         </div>
 
         {/* LIST */}
@@ -282,13 +260,13 @@ export default function AdminPage() {
             <div style={groupLabel}>{group}</div>
 
             {items.map(item => (
-              <div key={item.id} style={card}>
+              <div key={item.id} style={cardHover}>
 
                 <div style={rowBetween}>
                   <strong>{item.passport} → {item.country}</strong>
 
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <span style={item.rating === 1 ? badgeGreen : badgeRed}>
+                    <span style={item.rating === 1 ? badgeGood : badgeBad}>
                       {item.rating === 1 ? '👍' : '👎'}
                     </span>
 
@@ -296,30 +274,22 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div style={{ marginTop: 8 }}>{item.comment || '—'}</div>
+                <div style={comment}>{item.comment || '—'}</div>
 
                 {editingId === item.id ? (
-                  <div style={{ marginTop: 10 }}>
+                  <div>
                     <select style={input} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
                       <option value="">Status</option>
                       {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                     </select>
 
-                    <input
-                      style={input}
-                      placeholder="Max stay"
-                      value={form.max_stay}
-                      onChange={e => setForm({ ...form, max_stay: e.target.value })}
-                    />
+                    <input style={input} value={form.max_stay} placeholder="Max stay" onChange={e => setForm({ ...form, max_stay: e.target.value })} />
 
                     <button style={primaryBtn} onClick={() => saveOverride(item)}>Uložit</button>
                   </div>
                 ) : (
-                  <button style={secondaryBtn} onClick={() => startEdit(item)}>
-                    Upravit override
-                  </button>
+                  <button style={ghostBtn} onClick={() => startEdit(item)}>Upravit</button>
                 )}
-
               </div>
             ))}
           </div>
@@ -330,106 +300,120 @@ export default function AdminPage() {
   )
 }
 
-/* ---------- UI ---------- */
+/* ---------- COMPONENTS ---------- */
 
 function Stat({ label, value, danger }: any) {
   return (
-    <div style={{ minWidth: 80 }}>
-      <div style={{ fontSize: 12, color: '#6b7280' }}>{label}</div>
-      <div style={{ color: danger ? '#ef4444' : 'white' }}>{value}</div>
+    <div>
+      <div style={mutedSmall}>{label}</div>
+      <div style={{ fontSize: 20, color: danger ? '#ef4444' : 'white' }}>{value}</div>
     </div>
   )
 }
 
 /* ---------- STYLY ---------- */
 
-const page: CSSProperties = { minHeight: '100vh', background: '#0b0f14', color: 'white', padding: 40 }
+const page: CSSProperties = { background: '#0a0f1a', minHeight: '100vh', color: 'white', padding: 32 }
 const container: CSSProperties = { maxWidth: 900, margin: '0 auto' }
-const header: CSSProperties = { display: 'flex', justifyContent: 'space-between', marginBottom: 20 }
 
-const card: CSSProperties = {
-  background: '#111827',
-  border: '1px solid #1f2937',
+const header: CSSProperties = { display: 'flex', justifyContent: 'space-between', marginBottom: 24 }
+
+const cardSoft: CSSProperties = {
+  background: '#0f172a',
   borderRadius: 16,
-  padding: 16,
-  marginBottom: 12
+  padding: 20,
+  border: '1px solid #1e293b',
+  marginBottom: 20
 }
 
-const sectionTitle: CSSProperties = { marginBottom: 10, fontWeight: 600 }
-const statsRow: CSSProperties = { display: 'flex', gap: 20, flexWrap: 'wrap' }
+const cardHover: CSSProperties = {
+  ...cardSoft,
+  cursor: 'default'
+}
+
+const grid4: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 20 }
+
+const sectionTitle: CSSProperties = { fontWeight: 600, marginBottom: 12 }
 
 const input: CSSProperties = {
   width: '100%',
   padding: 10,
+  marginTop: 8,
   borderRadius: 8,
-  border: '1px solid #1f2937',
-  background: '#0b0f14',
-  color: 'white',
-  marginTop: 6
+  border: '1px solid #1e293b',
+  background: '#020617',
+  color: 'white'
 }
 
 const primaryBtn: CSSProperties = {
   marginTop: 10,
   width: '100%',
   padding: 10,
-  background: '#2563eb',
   borderRadius: 8,
   border: 'none',
+  background: '#2563eb',
   color: 'white',
   cursor: 'pointer'
 }
 
-const secondaryBtn: CSSProperties = {
+const ghostBtn: CSSProperties = {
   padding: '6px 10px',
-  background: '#1f2937',
-  border: '1px solid #374151',
   borderRadius: 8,
-  color: 'white',
-  cursor: 'pointer'
-}
-
-const filters: CSSProperties = { marginBottom: 20, display: 'flex', gap: 10 }
-
-const countryItem: CSSProperties = {
-  padding: '4px 8px',
-  borderRadius: 6,
-  cursor: 'pointer'
-}
-
-const clearFilter: CSSProperties = {
-  fontSize: 12,
+  border: '1px solid #1e293b',
+  background: 'transparent',
   color: '#9ca3af',
   cursor: 'pointer'
 }
 
-const daysRow: CSSProperties = { display: 'flex', gap: 6, marginTop: 10 }
-const dayBox: CSSProperties = { flex: 1, textAlign: 'center', background: '#1f2937', borderRadius: 6, padding: 6 }
-const dayLabel: CSSProperties = { fontSize: 10, color: '#9ca3af' }
+const filters: CSSProperties = { display: 'flex', gap: 10, marginBottom: 16 }
 
-const groupLabel: CSSProperties = { color: '#9ca3af', margin: '10px 0 6px' }
+const chip: CSSProperties = {
+  padding: '4px 10px',
+  borderRadius: 999,
+  cursor: 'pointer',
+  fontSize: 12
+}
+
+const countryList: CSSProperties = { display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }
+
+const daysRow: CSSProperties = { display: 'flex', gap: 6, marginTop: 12 }
+const dayBox: CSSProperties = { flex: 1, textAlign: 'center', padding: 6, background: '#020617', borderRadius: 6 }
+const dayLabel: CSSProperties = { fontSize: 10, color: '#6b7280' }
+
+const groupLabel: CSSProperties = { margin: '12px 0 6px', color: '#6b7280' }
+
 const rowBetween: CSSProperties = { display: 'flex', justifyContent: 'space-between' }
 
-const badgeGreen: CSSProperties = { background: '#16a34a', padding: '2px 6px', borderRadius: 6 }
-const badgeRed: CSSProperties = { background: '#dc2626', padding: '2px 6px', borderRadius: 6 }
+const badgeGood: CSSProperties = { background: '#16a34a', padding: '2px 6px', borderRadius: 6 }
+const badgeBad: CSSProperties = { background: '#dc2626', padding: '2px 6px', borderRadius: 6 }
 const badgeWarn: CSSProperties = { background: '#f59e0b', padding: '2px 6px', borderRadius: 6 }
 
-const muted: CSSProperties = { color: '#9ca3af' }
-const error: CSSProperties = { marginTop: 10, color: '#ef4444' }
+const comment: CSSProperties = { marginTop: 8, color: '#9ca3af' }
 
-const loginWrapper: CSSProperties = {
+const muted: CSSProperties = { color: '#9ca3af' }
+const mutedSmall: CSSProperties = { color: '#6b7280', fontSize: 12 }
+
+const divider: CSSProperties = { height: 1, background: '#1e293b', margin: '12px 0' }
+
+const clearFilter: CSSProperties = { fontSize: 12, color: '#9ca3af', cursor: 'pointer' }
+
+const loginWrap: CSSProperties = {
   minHeight: '100vh',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  background: '#0b0f14'
+  background: '#0a0f1a'
 }
 
 const loginCard: CSSProperties = {
-  width: 360,
+  width: 340,
   padding: 24,
-  background: '#111827',
+  background: '#0f172a',
   borderRadius: 16,
-  border: '1px solid #1f2937',
+  border: '1px solid #1e293b',
   display: 'flex',
-  flexDirection: 'column'
+  flexDirection: 'column',
+  gap: 8
 }
+
+const error: CSSProperties = { color: '#ef4444', marginTop: 10 }
