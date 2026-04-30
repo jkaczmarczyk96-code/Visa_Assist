@@ -12,10 +12,24 @@ const WEIGHTS = {
 };
 
 // =========================
+// 🌍 NORMALIZE + MAP
+// =========================
+function normalize(str: string) {
+  return str.toLowerCase().trim().replace(/\s+/g, " ");
+}
+
+const COUNTRY_MAP: Record<string, string> = {
+  "united states of america": "US",
+  "united states": "US",
+  "usa": "US"
+};
+
+// =========================
 // FIX: COUNTRY FORMAT
 // =========================
-function toApiFormat(country: string) {
-  return country.toUpperCase().slice(0, 2);
+function toApiFormat(name: string) {
+  const n = normalize(name);
+  return COUNTRY_MAP[n] || name.toUpperCase().slice(0, 2);
 }
 
 // =========================
@@ -44,31 +58,21 @@ function pickBestResult(results: any[]) {
 // =========================
 function mapStatusToName(status: string) {
   switch (status) {
-    case "visa_free":
-      return "Visa not required";
-    case "visa_on_arrival":
-      return "Visa on arrival";
-    case "evisa":
-      return "eVisa";
-    case "visa_required":
-      return "Visa required";
-    default:
-      return status;
+    case "visa_free": return "Visa not required";
+    case "visa_on_arrival": return "Visa on arrival";
+    case "evisa": return "eVisa";
+    case "visa_required": return "Visa required";
+    default: return status;
   }
 }
 
 function mapStatusToColor(status: string) {
   switch (status) {
-    case "visa_free":
-      return "green";
-    case "visa_on_arrival":
-      return "blue";
-    case "evisa":
-      return "yellow";
-    case "visa_required":
-      return "red";
-    default:
-      return "gray";
+    case "visa_free": return "green";
+    case "visa_on_arrival": return "blue";
+    case "evisa": return "yellow";
+    case "visa_required": return "red";
+    default: return "gray";
   }
 }
 
@@ -83,9 +87,7 @@ function normalizeDuration(value: any): string {
   if (text.includes("90")) return "90 dní";
   if (text.includes("30")) return "30 dní";
   if (text.includes("180")) return "180 dní";
-
   if (text.includes("day") || text.includes("dní")) return value;
-
   if (text.includes("varies") || text.includes("depends")) return "Liší se";
 
   return value.length > 50 ? "Není uvedeno" : value;
@@ -144,8 +146,6 @@ async function fetchWikipedia(passport: string, country: string) {
 // =========================
 async function fetchTravelBuddy(passport: string, country: string) {
   try {
-    console.log("FETCH TB START");
-
     const body = new URLSearchParams();
     body.append("passport", passport);
     body.append("destination", country);
@@ -163,11 +163,7 @@ async function fetchTravelBuddy(passport: string, country: string) {
       }
     );
 
-    console.log("TB STATUS:", res.status);
-
     const json = await res.json();
-    console.log("TB RAW:", json);
-
     const data = json?.data;
 
     if (!data?.visa_rules?.primary_rule) return null;
@@ -188,8 +184,7 @@ async function fetchTravelBuddy(passport: string, country: string) {
       visa_duration: duration,
       visa_color: color,
       source: "travel_buddy",
-      mandatory_registration: data.mandatory_registration || null,
-      raw: data
+      mandatory_registration: data.mandatory_registration || null
     };
 
   } catch (e) {
@@ -225,8 +220,7 @@ async function getFeedback(passport: string, country: string, url: string, key: 
     });
 
     return { pos, neg };
-  } catch (e) {
-    console.log("FEEDBACK ERROR:", e);
+  } catch {
     return { pos: 0, neg: 0 };
   }
 }
@@ -236,29 +230,15 @@ async function getFeedback(passport: string, country: string, url: string, key: 
 // =========================
 serve(async (req) => {
 
-  console.log("FUNCTION START");
-
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  let body;
-
-  try {
-    body = await req.json();
-  } catch (e) {
-    console.log("BODY ERROR:", e);
-
-    return new Response(
-      JSON.stringify({ error: "Invalid JSON" }),
-      { headers: corsHeaders }
-    );
-  }
-
-  console.log("BODY:", body);
+  const body = await req.json();
 
   const passport = body.passport;
-  const country = body.country;
+  const countryName = body.country;
+  const country = toApiFormat(countryName);
 
   const url = Deno.env.get("PROJECT_URL");
   const key = Deno.env.get("SERVICE_ROLE_KEY");
@@ -279,78 +259,49 @@ serve(async (req) => {
   const cache = await cacheRes.json();
 
   if (cache.length > 0) {
-  const cachedRow = cache[0];
-  const cached = cachedRow.data;
+    const cachedRow = cache[0];
+    const cached = cachedRow.data;
 
-  // 🕒 čas poslední aktualizace
-  const updatedAt = new Date(cachedRow.updated_at).getTime();
+    const updatedAt = new Date(cachedRow.updated_at).getTime();
+    const TTL = 30 * 24 * 60 * 60 * 1000;
+    const isExpired = Date.now() - updatedAt > TTL;
 
-  // 🧠 TTL = 30 dní
-  const TTL = 30 * 24 * 60 * 60 * 1000;
+    if (cached?.override === true) {
+      return new Response(JSON.stringify({
+        visa_name: mapStatusToName(cached.status),
+        visa_duration: cached.max_stay,
+        visa_color: mapStatusToColor(cached.status),
+        confidence: 1,
+        source: "admin_override",
+        generated_at: new Date().toISOString()
+      }), { headers: corsHeaders });
+    }
 
-  const isExpired = Date.now() - updatedAt > TTL;
-
-  console.log("CACHE HIT");
-  console.log("CACHE AGE (days):", Math.round((Date.now() - updatedAt) / 86400000));
-
-  // 🔴 ADMIN OVERRIDE má VŽDY prioritu
-  if (cached?.override === true) {
-    console.log("USING ADMIN OVERRIDE");
-
-    const mapped = {
-      visa_name: mapStatusToName(cached.status),
-      visa_duration: cached.max_stay,
-      visa_color: mapStatusToColor(cached.status),
-      confidence: 1,
-      source: "admin_override",
-      generated_at: new Date().toISOString()
-    };
-
-    return new Response(JSON.stringify(mapped), {
-      headers: corsHeaders
-    });
+    if (!isExpired) {
+      return new Response(JSON.stringify(cached), {
+        headers: corsHeaders
+      });
+    }
   }
-
-  // 🟢 pokud cache není stará → použij ji
-  if (!isExpired) {
-    console.log("USING CACHE");
-
-    return new Response(JSON.stringify(cached), {
-      headers: corsHeaders
-    });
-  }
-
-  // 🟡 pokud stará → pokračuj dál (fetch nové data)
-  console.log("CACHE EXPIRED → fetching fresh data");
-}
 
   // =========================
   // REAL DATA
   // =========================
-  const apiCountry = toApiFormat(country);
-  
-  const tb = await fetchTravelBuddy(passport, apiCountry);
-  const wiki = await fetchWikipedia(passport, country);
-  
-  // ✅ PRIORITA: Travel Buddy > Wikipedia
+  const tb = await fetchTravelBuddy(passport, country);
+  const wiki = await fetchWikipedia(passport, countryName);
+
   let result = tb && tb.visa_name ? tb : wiki;
 
-// 🔥 fallback MUSÍ být mimo
-if (!result) {
-  result = {
-    visa_name: "Unknown",
-    visa_duration: "Není uvedeno",
-    visa_color: "yellow",
-    source: "fallback"
-  };
-}
-
-// bonus info
-result["source_priority"] = tb && tb.visa_name ? "primary" : "fallback";
+  if (!result) {
+    result = {
+      visa_name: "Unknown",
+      visa_duration: "Není uvedeno",
+      visa_color: "yellow",
+      source: "fallback"
     };
   }
-  
-  console.log("FINAL RESULT:", result);
+
+  result["source_priority"] = tb && tb?.visa_name ? "primary" : "fallback";
 
   // =========================
   // CONFIDENCE
@@ -358,25 +309,16 @@ result["source_priority"] = tb && tb.visa_name ? "primary" : "fallback";
   const { pos, neg } = await getFeedback(passport, country, url!, key!);
 
   let confidence = 0.6;
-
-  const penalty = Math.min(neg * 0.1, 0.5);
-  const bonus = Math.min(pos * 0.05, 0.2);
-
-  confidence = confidence - penalty + bonus;
-  confidence = Math.max(0, Math.min(1, confidence));
+  confidence = Math.max(0, Math.min(1, confidence - neg * 0.1 + pos * 0.05));
 
   result["confidence"] = Number(confidence.toFixed(2));
-  result["positive_feedback"] = pos;
-  result["negative_feedback"] = neg;
-  result["flagged"] = neg >= 3;
   result["generated_at"] = new Date().toISOString();
 
   result.visa_duration = normalizeDuration(result.visa_duration);
+
   // =========================
   // SAVE CACHE
   // =========================
-  result.visa_duration = normalizeDuration(result.visa_duration);
-
   await fetch(`${url}/rest/v1/visa_cache`, {
     method: "POST",
     headers: {
@@ -387,6 +329,7 @@ result["source_priority"] = tb && tb.visa_name ? "primary" : "fallback";
     body: JSON.stringify({
       passport,
       country,
+      country_name: countryName,
       data: result
     })
   });
