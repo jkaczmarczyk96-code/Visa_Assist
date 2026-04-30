@@ -145,15 +145,27 @@ async function fetchTravelBuddy(passport: string, country: string) {
     );
 
     const json = await res.json();
+    console.log("TB RAW:", json);
+
     const data = json?.data;
 
-    if (!data?.visa_rules?.primary_rule) return null;
+    if (!data?.visa_rules) {
+      console.log("TB INVALID STRUCTURE:", json);
+      return null;
+    }
 
-    const primary = data.visa_rules.primary_rule;
-    const secondary = data.visa_rules.secondary_rule;
+    const primary = data.visa_rules.primary_rule || {};
+    const secondary = data.visa_rules.secondary_rule || {};
 
-    let visaName = primary.name;
-    if (secondary?.name) {
+    if (!primary.name && !secondary.name) {
+      console.log("TB NO DATA:", json);
+      return null;
+    }
+
+    // 🔥 FIX: správné složení názvu
+    let visaName = primary.name || secondary.name;
+
+    if (primary.name && secondary.name) {
       visaName = `${primary.name} / ${secondary.name}`;
     }
 
@@ -174,7 +186,6 @@ async function fetchTravelBuddy(passport: string, country: string) {
 
   return null;
 }
-
 // =========================
 // FEEDBACK
 // =========================
