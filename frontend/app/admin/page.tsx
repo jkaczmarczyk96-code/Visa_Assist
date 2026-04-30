@@ -60,9 +60,17 @@ export default function AdminPage() {
     else location.reload()
   }
 
-  const logout = async () => {
-    await supabase.auth.signOut()
-    location.reload()
+  const login = async () => {
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+    if (error) {
+      setErrorMsg(error.message)
+    } else {
+      // důležité: krátké zpoždění
+      setTimeout(() => {
+        location.reload()
+      }, 500)
+    }
   }
 
   useEffect(() => {
@@ -179,12 +187,14 @@ export default function AdminPage() {
             style={input}
             value={email}
             onChange={e => setEmail(e.target.value)}
+            id="email"
             name="email"
             autoComplete="email"
           />
 
           <label style={label}>Heslo</label>
           <input
+            id="password"
             type="password"
             style={input}
             value={password}
