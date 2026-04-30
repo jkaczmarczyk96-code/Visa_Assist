@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std/http/server.ts";
 
+import {
+  toApiFormat
+} from "../shared/countries.ts"; 
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type",
