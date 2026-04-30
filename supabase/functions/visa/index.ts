@@ -10,7 +10,7 @@ const corsHeaders = {
 
 const WEIGHTS = {
   travel_buddy: 1.0,
-  wikipedia: 0.4
+  wikipedia: 0.1
 };
 
 // =========================
@@ -247,7 +247,7 @@ serve(async (req) => {
     const TTL = 30 * 24 * 60 * 60 * 1000;
     const isExpired = Date.now() - updatedAt > TTL;
 
-    if (cached?.override === true) {
+    if (cached?.override === true && !isExpired) {
       return new Response(JSON.stringify({
         visa_name: mapStatusToName(cached.status),
         visa_duration: cached.max_stay,
@@ -265,25 +265,39 @@ serve(async (req) => {
     }
   }
 
-  // =========================
-  // REAL DATA
-  // =========================
-  const tb = await fetchTravelBuddy(passport, country);
-  const wiki = await fetchWikipedia(passport, countryName);
+// =========================
+// REAL DATA
+// =========================
+    const tb = await fetchTravelBuddy(passport, country);
+    const wiki = await fetchWikipedia(passport, countryName);
+    
+    // 🔥 validace TB
+    const tbValid =
+      tb &&
+      tb.visa_name &&
+      tb.visa_name.length > 3 &&
+      tb.visa_name !== "Unknown";
+    
+    // 🔥 výběr nejlepšího zdroje
+    const resultPicked = pickBestResult([
+      tbValid ? tb : null,
+      wiki
+    ]);
+    
+    let result = resultPicked;
+    
+    if (!result) {
+      result = {
+        visa_name: "Unknown",
+        visa_duration: "Není uvedeno",
+        visa_color: "yellow",
+        source: "fallback"
+      };
+    }
 
-  let result = tb && tb.visa_name ? tb : wiki;
-
-  if (!result) {
-    result = {
-      visa_name: "Unknown",
-      visa_duration: "Není uvedeno",
-      visa_color: "yellow",
-      source: "fallback"
-    };
-  }
-
-  result["source_priority"] = tb && tb?.visa_name ? "primary" : "fallback";
-
+  result["source_priority"] =
+  result.source === "travel_buddy" ? "primary" : "fallback";
+  
   // =========================
   // CONFIDENCE
   // =========================
