@@ -431,14 +431,15 @@ export default function Home() {
                 ✔ Feedback odeslán, děkujeme
               </div>
             )}
-  {/* 🌍 MAPA */}
-    <div style={{ marginTop: 40, position: "relative", zIndex: 10 }}>
-      <WorldMap
-        data={mapData}
-        onSelect={handleMapSelect}
-      />
-    </div>
-  </div>
-</div>
-);
+     {/* 🌍 MAPA */}
+        <div style={{ marginTop: 40, position: "relative", zIndex: 10 }}>
+          <WorldMap
+            data={mapData}
+            onSelect={handleMapSelect}
+          />
+        </div>
+
+      </div> {/* container */}
+    </div>   {/* page */}
+  );
 }
