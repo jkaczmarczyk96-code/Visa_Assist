@@ -56,14 +56,14 @@ export default function WorldMap({ data, onSelect }: Props) {
               const item = data?.[name];
 
               const fill = item
-                ? colorMap[item.visa_color] || "#374151"
-                : "#1f2937";
+                ? colorMap[item.visa_color] || "#475569"
+                : "#475569";
 
               return (
                 <Geography
                   key={geo.rsmKey}
                   geography={geo}
-                  fill={countryExists ? fill : "#081652"} // tmavé pro neaktivní
+                  fill={countryExists ? fill : "#262e4d"} // tmavé pro neaktivní
                   stroke="#0e1117"
                 
                   onMouseEnter={() => {
