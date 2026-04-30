@@ -281,7 +281,8 @@ export default function Home() {
               </div>
 
               <div>
-                ⏳ <b>Maximální pobyt:</b> {result.visa_duration}
+                ⏳ <b>Maximální pobyt:</b>{" "}
+                {result.visa_duration ? result.visa_duration : "Není uvedeno"}
               </div>
             </div>
 
