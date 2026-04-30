@@ -67,6 +67,11 @@ export default function AdminPage() {
     }
   }
 
+  const logout = async () => {
+  await supabase.auth.signOut()
+  location.reload()
+}
+
   useEffect(() => {
     if (user) fetchData()
   }, [user, showNegative])
