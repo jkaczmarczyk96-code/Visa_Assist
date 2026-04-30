@@ -192,43 +192,18 @@ export default function AdminPage() {
   // 🔐 LOGIN UI
   if (!user) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: '#0b0f14',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'white'
-      }}>
-        <div style={{
-          width: 360,
-          background: '#111827',
-          padding: 24,
-          borderRadius: 16,
-          border: '1px solid #1f2937'
-        }}>
+      <div style={loginWrapper}>
+        <div style={loginCard}>
           <h2 style={{ marginBottom: 20 }}>Admin</h2>
 
-          <input
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="Email"
-            style={inputStyle}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" style={input} />
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Heslo" style={input} />
+          </div>
 
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="Heslo"
-            style={inputStyle}
-          />
+          <button onClick={login} style={primaryBtn}>Přihlásit</button>
 
-          <button onClick={login} style={primaryButton}>
-            Přihlásit
-          </button>
-
-          {errorMsg && <p style={{ color: '#ef4444' }}>{errorMsg}</p>}
+          {errorMsg && <p style={{ color: '#ef4444', marginTop: 10 }}>{errorMsg}</p>}
         </div>
       </div>
     )
@@ -237,36 +212,65 @@ export default function AdminPage() {
   if (loading) return <div style={{ padding: 40 }}>Načítám...</div>
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0b0f14', color: 'white', padding: 40 }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+    <div style={page}>
+      <div style={container}>
 
         {/* HEADER */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-          <h1>Dashboard</h1>
-          <button onClick={logout} style={secondaryButton}>Odhlásit</button>
+        <div style={header}>
+          <div>
+            <h1>Admin Dashboard</h1>
+            <div style={{ color: '#9ca3af' }}>Feedback & úpravy</div>
+          </div>
+
+          <button onClick={logout} style={secondaryBtn}>Odhlásit</button>
         </div>
 
         {/* ANALYTICS */}
         <div style={card}>
-          <div style={{ marginBottom: 10 }}>📊 Analytics</div>
+          <div style={{ marginBottom: 12, fontWeight: 600 }}>📊 Analytics</div>
 
-          <div style={{ display: 'flex', gap: 20 }}>
+          <div style={statsRow}>
             <div>Celkem: {total}</div>
             <div>👍 {positives}</div>
             <div>👎 {negatives}</div>
-            <div>Negativita: {negativeRate}%</div>
+            <div style={{ color: negativeRate > 30 ? '#ef4444' : '#9ca3af' }}>
+              Negativita: {negativeRate}%
+            </div>
+          </div>
+
+          {selectedCountry && (
+            <div onClick={() => setSelectedCountry(null)} style={clearFilter}>
+              ✖ Zrušit filtr ({selectedCountry})
+            </div>
+          )}
+
+          {topCountries.map(([country, count]: any) => (
+            <div
+              key={country}
+              onClick={() => setSelectedCountry(country)}
+              style={{
+                ...countryItem,
+                background: selectedCountry === country ? '#1f2937' : 'transparent'
+              }}
+            >
+              {country} ({count})
+            </div>
+          ))}
+
+          <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+            {last7Days.map((d, i) => (
+              <div key={i} style={dayBox}>
+                <div style={{ fontSize: 10 }}>{d.label}</div>
+                <div>{d.count}</div>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* FILTERS */}
-        <div style={{ margin: '20px 0', display: 'flex', gap: 10 }}>
-          <button onClick={() => setShowNegative(!showNegative)} style={secondaryButton}>
-            👎 Negativní
-          </button>
-
-          <button onClick={() => setShowFlagged(!showFlagged)} style={secondaryButton}>
-            🚨 Flagged
-          </button>
+        <div style={{ marginBottom: 20, display: 'flex', gap: 10 }}>
+          <button onClick={() => setShowNegative(!showNegative)} style={secondaryBtn}>👎 Negativní</button>
+          <button onClick={() => setShowFlagged(!showFlagged)} style={secondaryBtn}>🚨 Flagged</button>
         </div>
 
         {/* LIST */}
@@ -279,7 +283,7 @@ export default function AdminPage() {
           )
         ).map(([group, items]) => (
           <div key={group}>
-            <div style={{ color: '#6b7280', margin: '10px 0' }}>{group}</div>
+            <div style={{ color: '#9ca3af', margin: '10px 0 6px' }}>{group}</div>
 
             {items.map(item => (
               <div key={item.id} style={card}>
@@ -287,16 +291,14 @@ export default function AdminPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <strong>{item.passport} → {item.country}</strong>
 
-                  {isFlagged(item) && (
-                    <span style={badgeRed}>🚨</span>
-                  )}
+                  {isFlagged(item) && <span style={badge}>🚨</span>}
                 </div>
 
-                <div style={{ marginTop: 6 }}>{item.comment || '—'}</div>
+                <div style={{ marginTop: 8 }}>{item.comment || '—'}</div>
 
                 {editingId === item.id ? (
                   <div style={{ marginTop: 10 }}>
-                    <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} style={inputStyle}>
+                    <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} style={input}>
                       <option value="">Status</option>
                       {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                     </select>
@@ -305,16 +307,14 @@ export default function AdminPage() {
                       value={form.max_stay}
                       onChange={e => setForm({ ...form, max_stay: e.target.value })}
                       placeholder="Max stay"
-                      style={inputStyle}
+                      style={input}
                     />
 
-                    <button onClick={() => saveOverride(item)} style={primaryButton}>
-                      Uložit
-                    </button>
+                    <button onClick={() => saveOverride(item)} style={primaryBtn}>Uložit</button>
                   </div>
                 ) : (
-                  <button onClick={() => startEdit(item)} style={secondaryButton}>
-                    Upravit
+                  <button onClick={() => startEdit(item)} style={secondaryBtn}>
+                    Upravit override
                   </button>
                 )}
 
@@ -330,17 +330,20 @@ export default function AdminPage() {
 
 /* 🎨 STYLY */
 
+const page = { minHeight: '100vh', background: '#0b0f14', color: 'white', padding: 40 }
+const container = { maxWidth: 900, margin: '0 auto' }
+const header = { display: 'flex', justifyContent: 'space-between', marginBottom: 20 }
+
 const card = {
   background: '#111827',
   border: '1px solid #1f2937',
   borderRadius: 16,
   padding: 16,
-  marginBottom: 12
+  marginBottom: 10
 }
 
-const inputStyle = {
+const input = {
   width: '100%',
-  marginBottom: 10,
   padding: 10,
   borderRadius: 8,
   border: '1px solid #1f2937',
@@ -348,9 +351,10 @@ const inputStyle = {
   color: 'white'
 }
 
-const primaryButton = {
+const primaryBtn = {
   width: '100%',
   padding: 10,
+  marginTop: 10,
   background: '#2563eb',
   border: 'none',
   borderRadius: 8,
@@ -358,7 +362,7 @@ const primaryButton = {
   cursor: 'pointer'
 }
 
-const secondaryButton = {
+const secondaryBtn = {
   padding: '6px 10px',
   background: '#1f2937',
   border: '1px solid #374151',
@@ -367,8 +371,26 @@ const secondaryButton = {
   cursor: 'pointer'
 }
 
-const badgeRed = {
-  background: '#ef4444',
-  padding: '2px 6px',
-  borderRadius: 6
+const statsRow = { display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 16 }
+const clearFilter = { fontSize: 12, color: '#9ca3af', cursor: 'pointer' }
+const countryItem = { cursor: 'pointer', padding: '2px 6px', borderRadius: 6 }
+const dayBox = { flex: 1, textAlign: 'center', background: '#1f2937', borderRadius: 6, padding: 6 }
+const badge = { background: '#ef4444', padding: '2px 6px', borderRadius: 6 }
+
+const loginWrapper = {
+  minHeight: '100vh',
+  background: '#0b0f14',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center'
+}
+
+const loginCard = {
+  width: 360,
+  background: '#111827',
+  padding: 24,
+  borderRadius: 16,
+  border: '1px solid #1f2937',
+  display: 'flex',
+  flexDirection: 'column'
 }
