@@ -1,8 +1,6 @@
 import { serve } from "https://deno.land/std/http/server.ts";
 
-import {
-  toApiFormat
-} from "../shared/countries.ts"; 
+import { toApiFormat } from "../_shared/countries.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,27 +12,6 @@ const WEIGHTS = {
   travel_buddy: 1.0,
   wikipedia: 0.4
 };
-
-// =========================
-// 🌍 NORMALIZE + MAP
-// =========================
-function normalize(str: string) {
-  return str.toLowerCase().trim().replace(/\s+/g, " ");
-}
-
-const COUNTRY_MAP: Record<string, string> = {
-  "united states of america": "US",
-  "united states": "US",
-  "usa": "US"
-};
-
-// =========================
-// FIX: COUNTRY FORMAT
-// =========================
-function toApiFormat(name: string) {
-  const n = normalize(name);
-  return COUNTRY_MAP[n] || name.toUpperCase().slice(0, 2);
-}
 
 // =========================
 // FIX: BEST RESULT
