@@ -55,12 +55,6 @@ export default function AdminPage() {
   }, [])
 
   const login = async () => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) setErrorMsg(error.message)
-    else location.reload()
-  }
-
-  const login = async () => {
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
