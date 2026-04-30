@@ -314,20 +314,24 @@ serve(async (req) => {
   // =========================
   // SAVE CACHE
   // =========================
-  await fetch(`${url}/rest/v1/visa_cache`, {
-    method: "POST",
-    headers: {
-      apikey: key!,
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      passport,
-      country,
-      country_name: countryName,
-      data: result
-    })
-  });
+  if (result.source === "travel_buddy") {
+    await fetch(`${url}/rest/v1/visa_cache`, {
+      method: "POST",
+      headers: {
+        apikey: key!,
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        passport,
+        country,
+        country_name: countryName,
+        data: result
+      })
+    });
+  } else {
+    console.log("CACHE SKIPPED (non-TB source):", result.source);
+  }
 
   return new Response(JSON.stringify(result), {
     headers: corsHeaders
