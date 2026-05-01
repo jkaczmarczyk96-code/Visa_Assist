@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { toApiFormat } from '../../lib/countries'
 
@@ -27,6 +26,15 @@ const STATUS_OPTIONS = [
   { value: 'evisa', label: 'eVisa' },
   { value: 'visa_required', label: 'Vízum nutné' }
 ]
+
+function Stat({ label, value, danger }: { label: string; value: string | number; danger?: boolean }) {
+  return (
+    <div>
+      <div style={{ fontSize: 12, color: '#94a3b8' }}>{label}</div>
+      <div style={{ fontSize: 18, color: danger ? '#ef4444' : 'white' }}>{value}</div>
+    </div>
+  )
+}
 
 export default function AdminPage() {
 
@@ -68,7 +76,7 @@ export default function AdminPage() {
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
   }, [])
 
-  const login = async (e: any) => {
+  const login = async (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault()
 
   const { error } = await supabase.auth.signInWithPassword({
@@ -212,7 +220,7 @@ export default function AdminPage() {
   const negativeRate = total ? Math.round((negatives / total) * 100) : 0
 
   const topCountries = Object.entries(
-    data.reduce((acc: any, item) => {
+    data.reduce((acc: Record<string, number>, item) => {
       acc[item.country] = (acc[item.country] || 0) + 1
       return acc
     }, {})
@@ -351,7 +359,7 @@ export default function AdminPage() {
           )}
 
           <div style={chips}>
-            {topCountries.map(([c, n]: any) => (
+            {topCountries.map(([c, n]: [string, number]) => (
               <div
                 key={c}
                 onClick={() => setSelectedCountry(c)}
@@ -415,73 +423,89 @@ export default function AdminPage() {
         
             {/* LIST */}
               {tab === 'feedback' && (
-                Object.entries(
-                  groupByDate(
-                    data.filter(item =>
-                      (!showFlagged || isFlagged(item)) &&
-                      (!selectedCountry || item.country === selectedCountry)
+                <>
+                  {Object.entries(
+                    groupByDate(
+                      data.filter(item =>
+                        (!showFlagged || isFlagged(item)) &&
+                        (!selectedCountry || item.country === selectedCountry)
+                      )
                     )
-                  )
-                ).map(([group, items]) => (
-                  <div key={group}>
-                    <div style={groupLabel}>{group}</div>
+                  ).map(([group, items]) => {
+                    return (
+                      <div key={group}>
+                        <div style={groupLabel}>{group}</div>
 
-                    {items.map(item => (
-                      <div key={item.id} style={card}>
+                        {items.map((item: Feedback) => (
+                          <div key={item.id} style={card}>
 
-                        <div style={row}>
-                          <strong>{item.passport} → {item.country}</strong>
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            {isOverrideActive(item) && (
-                              <span style={{
-                                background: "#32cd32",
-                                padding: "2px 6px",
-                                borderRadius: 6,
-                                fontSize: 11,
-                                fontWeight: 600
-                              }}>
-                                OR Active
-                              </span>
-                            )}
-                            <span style={item.rating ? badgeGood : badgeBad}>
-                              {item.rating ? '👍' : '👎'}
-                            </span>
-                            {isFlagged(item) && <span style={badgeWarn}>🚨</span>}
+                            <div style={row}>
+                              <strong>{item.passport} → {item.country}</strong>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                {isOverrideActive(item) && (
+                                  <span style={{
+                                    background: "#32cd32",
+                                    padding: "2px 6px",
+                                    borderRadius: 6,
+                                    fontSize: 11,
+                                    fontWeight: 600
+                                  }}>
+                                    OR Active
+                                  </span>
+                                )}
+                                <span style={item.rating ? badgeGood : badgeBad}>
+                                  {item.rating ? '👍' : '👎'}
+                                </span>
+                                {isFlagged(item) && <span style={badgeWarn}>🚨</span>}
+                              </div>
+                            </div>
+
+                            <div style={divider} />
+
+                            <div style={comment}>{item.comment || '—'}</div>
+
+                            <div style={actions}>
+                              {editingId === item.id ? (
+                                <>
+                                  <label style={label}>Status</label>
+                                  <select
+                                    style={input}
+                                    value={form.status}
+                                    onChange={e => setForm({ ...form, status: e.target.value })}
+                                  >
+                                    <option value="">Vyber</option>
+                                    {STATUS_OPTIONS.map(s => (
+                                      <option key={s.value} value={s.value}>{s.label}</option>
+                                    ))}
+                                  </select>
+
+                                  <label style={label}>Max stay</label>
+                                  <input
+                                    style={input}
+                                    value={form.max_stay}
+                                    onChange={e => setForm({ ...form, max_stay: e.target.value })}
+                                  />
+
+                                  <button style={primaryBtn} onClick={() => saveOverride(item)}>
+                                    Uložit
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  style={ghostBtn}
+                                  onClick={() => startEdit(item)}
+                                >
+                                  Upravit
+                                </button>
+                              )}
+                            </div>
+
                           </div>
-                        </div>
-
-                        <div style={divider} />
-
-                        <div style={comment}>{item.comment || '—'}</div>
-
-                        <div style={actions}>
-                          {editingId === item.id ? (
-                            <>
-                              <label style={label}>Status</label>
-                              <select style={input} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
-                                <option value="">Vyber</option>
-                                {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                              </select>
-
-                              <label style={label}>Max stay</label>
-                              <input style={input} value={form.max_stay} onChange={e => setForm({ ...form, max_stay: e.target.value })} />
-
-                              <button style={primaryBtn} onClick={() => saveOverride(item)}>Uložit</button>
-                            </>
-                          ) : (
-                            <button
-                              style={ghostBtn}
-                              onClick={() => startEdit(item)}
-                            >
-                              Upravit
-                            </button>
-                          )}
-                        </div>
-
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ))
+                    )
+                  })}
+                </>
               )}
 
               {tab === 'db' && (
@@ -564,6 +588,10 @@ export default function AdminPage() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+            )
+}
 
 /* STYLES */
 
@@ -738,12 +766,3 @@ const loginCard: CSSProperties = {
 }
 
 const error: CSSProperties = { color: '#ef4444' }
-
-function Stat({ label, value, danger }: any) {
-  return (
-    <div>
-      <div style={{ fontSize: 12, color: '#94a3b8' }}>{label}</div>
-      <div style={{ fontSize: 18, color: danger ? '#ef4444' : 'white' }}>{value}</div>
-    </div>
-  )
-}
