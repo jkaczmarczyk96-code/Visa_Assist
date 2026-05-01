@@ -13,6 +13,10 @@
     "packageJson": {
       "dependencies": [
         "npm:@supabase/supabase-js@^2.105.1",
+        "npm:@types/node@^25.6.0",
+        "npm:@types/react-dom@^19.2.3",
+        "npm:@types/react@^19.2.14",
+        "npm:i18n-iso-countries@^7.14.0",
         "npm:react-simple-maps@3"
       ]
     }

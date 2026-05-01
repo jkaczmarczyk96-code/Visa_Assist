@@ -7,14 +7,14 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
-const SOURCE_PRIORITY = {
+const SOURCE_PRIORITY: Record<string, number> = {
   override: 4,
   travel_buddy: 3,
   visa_list: 2,
   wikipedia: 1
 };
 
-const BASE_CONFIDENCE = {
+const BASE_CONFIDENCE: Record<string, number> = {
   override: 1.0,
   travel_buddy: 0.9,
   visa_list: 0.7,
@@ -53,7 +53,7 @@ function toResponse(record: any, confidence: number) {
 // =========================
 async function getFromDB(url: string, key: string, passport: string, destination: string) {
   const res = await fetch(
-    `${url}/rest/v1/visa_records?passport=eq.${passport}&destination=eq.${destination}&limit=1`,
+    `${url}/rest/v1/visa_records?passport=eq.${passport}&destination=eq.${destination}&limit=1&order=updated_at.desc`,
     {
       headers: {
         apikey: key,
@@ -258,6 +258,15 @@ serve(async (req) => {
 
   const { passport, country: countryName } = await req.json();
   const destination = toApiFormat(countryName);
+
+    if (!destination) {
+    return new Response(JSON.stringify({
+      error: "Invalid country"
+    }), {
+      status: 400,
+      headers: corsHeaders
+    });
+  }
 
   const url = Deno.env.get("PROJECT_URL")!;
   const key = Deno.env.get("SERVICE_ROLE_KEY")!;

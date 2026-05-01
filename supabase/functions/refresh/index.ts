@@ -8,6 +8,16 @@ serve(async (req) => {
   try {
     const { passport, destination } = await req.json();
 
+        if (!destination) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Invalid destination"
+        }),
+        { headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     const url = Deno.env.get("PROJECT_URL")!;
     const key = Deno.env.get("SERVICE_ROLE_KEY")!;
 
