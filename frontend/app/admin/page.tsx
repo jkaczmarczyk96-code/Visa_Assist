@@ -32,6 +32,10 @@ export default function AdminPage() {
 
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
+  const [tab, setTab] = useState<'feedback' | 'db'>('feedback')
+  const [records, setRecords] = useState<any[]>([])
+  const [tbEnabled, setTbEnabled] = useState(false)
+
   const [user, setUser] = useState<any>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -125,6 +129,24 @@ export default function AdminPage() {
       });
       
       setOverrides(map);
+
+    // DB records
+    const { data: dbData } = await supabase
+      .from('visa_records')
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .limit(100)
+
+    setRecords(dbData || [])
+
+    // TB toggle
+    const { data: cfg } = await supabase
+      .from('app_config')
+      .select('*')
+      .eq('key', 'tb_refresh_enabled')
+      .single()
+
+    setTbEnabled(cfg?.value === 'true')
       
     setLoading(false)
   }
@@ -254,6 +276,15 @@ export default function AdminPage() {
         {/* HEADER */}
        <div style={header}>
           <h1>Admin Dashboard</h1>
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+            <button style={ghostBtn} onClick={() => setTab('feedback')}>
+              Feedback
+            </button>
+            <button style={ghostBtn} onClick={() => setTab('db')}>
+              DB
+            </button>
+          </div>
         
           <div style={{ display: 'flex', gap: 10 }}>
             <button
@@ -381,89 +412,158 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* LIST */}
-        {Object.entries(
-          groupByDate(
-            data.filter(item =>
-              (!showFlagged || isFlagged(item)) &&
-              (!selectedCountry || item.country === selectedCountry)
-            )
-          )
-        ).map(([group, items]) => (
-          <div key={group}>
-            <div style={groupLabel}>{group}</div>
+        
+            {/* LIST */}
+              {tab === 'feedback' && (
+                Object.entries(
+                  groupByDate(
+                    data.filter(item =>
+                      (!showFlagged || isFlagged(item)) &&
+                      (!selectedCountry || item.country === selectedCountry)
+                    )
+                  )
+                ).map(([group, items]) => (
+                  <div key={group}>
+                    <div style={groupLabel}>{group}</div>
 
-            {items.map(item => (
-              <div key={item.id} style={card}>
+                    {items.map(item => (
+                      <div key={item.id} style={card}>
 
-                <div style={row}>
-                  <strong>{item.passport} → {item.country}</strong>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {isOverrideActive(item) && (
-                        <span style={{
-                          background: "#32cd32",
-                          padding: "2px 6px",
-                          borderRadius: 6,
-                          fontSize: 11,
-                          fontWeight: 600
-                        }}>
-                          OR Active
-                        </span>
-                      )}
-                    <span style={item.rating ? badgeGood : badgeBad}>
-                      {item.rating ? '👍' : '👎'}
-                    </span>
-                    {isFlagged(item) && <span style={badgeWarn}>🚨</span>}
+                        <div style={row}>
+                          <strong>{item.passport} → {item.country}</strong>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {isOverrideActive(item) && (
+                              <span style={{
+                                background: "#32cd32",
+                                padding: "2px 6px",
+                                borderRadius: 6,
+                                fontSize: 11,
+                                fontWeight: 600
+                              }}>
+                                OR Active
+                              </span>
+                            )}
+                            <span style={item.rating ? badgeGood : badgeBad}>
+                              {item.rating ? '👍' : '👎'}
+                            </span>
+                            {isFlagged(item) && <span style={badgeWarn}>🚨</span>}
+                          </div>
+                        </div>
+
+                        <div style={divider} />
+
+                        <div style={comment}>{item.comment || '—'}</div>
+
+                        <div style={actions}>
+                          {editingId === item.id ? (
+                            <>
+                              <label style={label}>Status</label>
+                              <select style={input} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+                                <option value="">Vyber</option>
+                                {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                              </select>
+
+                              <label style={label}>Max stay</label>
+                              <input style={input} value={form.max_stay} onChange={e => setForm({ ...form, max_stay: e.target.value })} />
+
+                              <button style={primaryBtn} onClick={() => saveOverride(item)}>Uložit</button>
+                            </>
+                          ) : (
+                            <button
+                              style={ghostBtn}
+                              onClick={() => startEdit(item)}
+                            >
+                              Upravit
+                            </button>
+                          )}
+                        </div>
+
+                      </div>
+                    ))}
                   </div>
-                </div>
+                ))
+              )}
 
-                <div style={divider} />
+              {tab === 'db' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-                <div style={comment}>{item.comment || '—'}</div>
+                  {/* TB TOGGLE */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <label>Travel Buddy</label>
+                    <input
+                      type="checkbox"
+                      checked={tbEnabled}
+                      onChange={async (e) => {
+                        const val = e.target.checked ? 'true' : 'false'
 
-                <div style={actions}>
-                  {editingId === item.id ? (
-                    <>
-                      <label style={label}>Status</label>
-                      <select style={input} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
-                        <option value="">Vyber</option>
-                        {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                      </select>
+                        await supabase
+                          .from('app_config')
+                          .update({ value: val })
+                          .eq('key', 'tb_refresh_enabled')
 
-                      <label style={label}>Max stay</label>
-                      <input style={input} value={form.max_stay} onChange={e => setForm({ ...form, max_stay: e.target.value })} />
-
-                      <button style={primaryBtn} onClick={() => saveOverride(item)}>Uložit</button>
-                    </>
-                  ) : (
-                    <button
-                      style={ghostBtn}
-                      onClick={() => startEdit(item)}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#1e293b'
-                        e.currentTarget.style.color = 'white'
-                        e.currentTarget.style.border = '1px solid #3b82f6'
+                        setTbEnabled(e.target.checked)
                       }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent'
-                        e.currentTarget.style.color = '#cbd5f5'
-                        e.currentTarget.style.border = '1px solid #475569'
-                      }}
-                    >
-                      Upravit
-                    </button>
-                  )}
+                    />
+                  </div>
+
+                  {/* RECORDS */}
+                  {records.map(r => (
+                    <div key={`${r.passport}-${r.destination}`} style={card}>
+
+                      <div style={row}>
+                        <strong>{r.passport} → {r.destination}</strong>
+
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {r.needs_review && <span style={badgeWarn}>⚠️</span>}
+
+                          <span style={{
+                            background: '#1e293b',
+                            padding: '2px 6px',
+                            borderRadius: 6,
+                            fontSize: 11
+                          }}>
+                            {r.source}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={divider} />
+
+                      <div>{r.visa_name}</div>
+                      <div style={{ color: '#94a3b8', fontSize: 12 }}>
+                        {r.visa_duration || '—'}
+                      </div>
+
+                      <div style={actions}>
+                        <button
+                          style={ghostBtn}
+                          onClick={async () => {
+                            await fetch(
+                              `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/refresh`,
+                              {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+                                },
+                                body: JSON.stringify({
+                                  passport: r.passport,
+                                  destination: r.destination
+                                })
+                              }
+                            )
+
+                            fetchData()
+                          }}
+                        >
+                          🔄 Refresh
+                        </button>
+                      </div>
+
+                    </div>
+                  ))}
                 </div>
-
-              </div>
-            ))}
-          </div>
-        ))}
-
-      </div>
-    </div>
-  )
-}
+              )}
 
 /* STYLES */
 

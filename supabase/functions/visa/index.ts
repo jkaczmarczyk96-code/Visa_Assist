@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std/http/server.ts";
-
 import { toApiFormat } from "../_shared/countries.ts";
 
 const corsHeaders = {
@@ -8,57 +7,22 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
-const WEIGHTS = {
-  travel_buddy: 1.0,
-  wikipedia: 0.1
+const SOURCE_PRIORITY = {
+  override: 4,
+  travel_buddy: 3,
+  visa_list: 2,
+  wikipedia: 1
+};
+
+const BASE_CONFIDENCE = {
+  override: 1.0,
+  travel_buddy: 0.9,
+  visa_list: 0.7,
+  wikipedia: 0.4
 };
 
 // =========================
-// FIX: BEST RESULT
-// =========================
-function pickBestResult(results: any[]) {
-  let best = null;
-  let bestScore = -1;
-
-  for (const r of results) {
-    if (!r) continue;
-
-    const w = WEIGHTS[r.source] || 0;
-
-    if (w > bestScore) {
-      best = r;
-      bestScore = w;
-    }
-  }
-
-  return best;
-}
-
-// =========================
-// MAPOVÁNÍ
-// =========================
-function mapStatusToName(status: string) {
-  switch (status) {
-    case "visa_free": return "Visa not required";
-    case "visa_on_arrival": return "Visa on arrival";
-    case "evisa": return "eVisa";
-    case "visa_required": return "Visa required";
-    default: return status;
-  }
-}
-
-function mapStatusToColor(status: string) {
-  switch (status) {
-    case "visa_free": return "green";
-    case "visa_on_arrival": return "blue";
-    case "evisa": return "yellow";
-    case "visa_required": return "red";
-    default: return "gray";
-  }
-}
-
-// =========================
-// NORMALIZE DURATION
+// NORMALIZE
 // =========================
 function normalizeDuration(value: any): string {
   if (!value || value === "") return "Není uvedeno";
@@ -68,68 +32,160 @@ function normalizeDuration(value: any): string {
   if (text.includes("90")) return "90 dní";
   if (text.includes("30")) return "30 dní";
   if (text.includes("180")) return "180 dní";
-  if (text.includes("day") || text.includes("dní")) return value;
   if (text.includes("varies") || text.includes("depends")) return "Liší se";
 
-  return value.length > 50 ? "Není uvedeno" : value;
+  return value;
+}
+
+function toResponse(record: any, confidence: number) {
+  return {
+    visa_name: record.visa_name,
+    visa_duration: normalizeDuration(record.visa_duration),
+    visa_color: record.visa_color,
+    confidence: Number(confidence.toFixed(2)),
+    source: record.source,
+    generated_at: new Date().toISOString()
+  };
 }
 
 // =========================
-// COLOR DETECTION (wiki)
+// DB
 // =========================
-function detectColor(text: string) {
-  const t = text.toLowerCase();
+async function getFromDB(url: string, key: string, passport: string, destination: string) {
+  const res = await fetch(
+    `${url}/rest/v1/visa_records?passport=eq.${passport}&destination=eq.${destination}&limit=1`,
+    {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`
+      }
+    }
+  );
 
-  if (t.includes("visa free") || t.includes("no visa")) return "green";
-  if (t.includes("visa on arrival")) return "blue";
-  if (t.includes("evisa") || t.includes("eta")) return "yellow";
-  if (t.includes("visa required")) return "red";
+  const data = await res.json();
+  return data[0] || null;
+}
 
-  return "yellow";
+async function upsertDB(
+  url: string,
+  key: string,
+  passport: string,
+  destination: string,
+  incoming: any
+) {
+  const existing = await getFromDB(url, key, passport, destination);
+
+  let needs_review = false;
+
+  if (existing) {
+    const currentP = SOURCE_PRIORITY[existing.source] || 0;
+    const incomingP = SOURCE_PRIORITY[incoming.source] || 0;
+
+    // ❌ horší zdroj nepřepisuje
+    if (incomingP < currentP) return;
+
+    // 🔥 DETEKCE KONFLIKTU (jen mezi různými zdroji)
+    if (
+      existing.source !== incoming.source &&
+      (
+        existing.visa_name !== incoming.visa_name ||
+        existing.visa_color !== incoming.visa_color
+      )
+    ) {
+      needs_review = true;
+    }
+  }
+
+  await fetch(`${url}/rest/v1/visa_records`, {
+    method: "POST",
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates"
+    },
+    body: JSON.stringify({
+      passport,
+      destination,
+      ...incoming,
+      needs_review,
+      updated_at: new Date().toISOString()
+    })
+  });
 }
 
 // =========================
-// WIKIPEDIA FETCH
+// VISA LIST
+// =========================
+function normalizeRequirement(value: string) {
+  if (!value) return null;
+  const v = value.toLowerCase();
+
+  if (!isNaN(Number(v))) {
+    return { visa_name: "Visa-free", visa_duration: `${v} days`, visa_color: "green", source: "visa_list" };
+  }
+
+  if (v.includes("free")) return { visa_name: "Visa-free", visa_color: "green", source: "visa_list" };
+  if (v.includes("arrival")) return { visa_name: "Visa on Arrival", visa_color: "orange", source: "visa_list" };
+  if (v.includes("e-visa") || v.includes("evisa")) return { visa_name: "eVisa", visa_color: "orange", source: "visa_list" };
+  if (v.includes("eta")) return { visa_name: "Visa waiver", visa_color: "green", source: "visa_list" };
+  if (v.includes("required")) return { visa_name: "Visa required", visa_color: "red", source: "visa_list" };
+
+  return null;
+}
+
+async function fetchVisaList(passport: string, destination: string) {
+  try {
+    const res = await fetch(
+      "https://raw.githubusercontent.com/imorte/passport-index-data/main/passport-index-matrix.json"
+    );
+    const data = await res.json();
+
+    return normalizeRequirement(data?.[passport]?.[destination]);
+  } catch {
+    return null;
+  }
+}
+
+// =========================
+// WIKIPEDIA
 // =========================
 async function fetchWikipedia(passport: string, country: string) {
   try {
     const map: any = { CZ: "Czech", SK: "Slovak" };
     const wikiPassport = map[passport] || passport;
 
-    const url = `https://en.wikipedia.org/wiki/Visa_requirements_for_${wikiPassport}_citizens`;
+    const res = await fetch(
+      `https://en.wikipedia.org/wiki/Visa_requirements_for_${wikiPassport}_citizens`
+    );
 
-    const res = await fetch(url);
     const html = await res.text();
-
     const rows = html.split("<tr");
 
     for (const row of rows) {
       const clean = row.replace(/<[^>]+>/g, " ").toLowerCase();
-
       if (clean.startsWith(country.toLowerCase())) {
         return {
           visa_name: clean.slice(0, 100),
           visa_duration: "",
-          visa_color: detectColor(clean),
+          visa_color: "yellow",
           source: "wikipedia"
         };
       }
     }
-  } catch (e) {
-    console.log("WIKI ERROR:", e);
-  }
+  } catch {}
 
   return null;
 }
 
 // =========================
-// TRAVEL BUDDY FETCH
+// TRAVEL BUDDY
 // =========================
-async function fetchTravelBuddy(passport: string, country: string) {
+async function fetchTravelBuddy(passport: string, destination: string) {
   try {
     const body = new URLSearchParams();
     body.append("passport", passport);
-    body.append("destination", country);
+    body.append("destination", destination);
 
     const res = await fetch(
       "https://visa-requirement.p.rapidapi.com/v2/visa/check",
@@ -145,54 +201,28 @@ async function fetchTravelBuddy(passport: string, country: string) {
     );
 
     const json = await res.json();
-    console.log("TB RAW:", json);
+    const primary = json?.data?.visa_rules?.primary_rule;
 
-    const data = json?.data;
-
-    if (!data?.visa_rules) {
-      console.log("TB INVALID STRUCTURE:", json);
-      return null;
-    }
-
-    const primary = data.visa_rules.primary_rule || {};
-    const secondary = data.visa_rules.secondary_rule || {};
-
-    if (!primary.name && !secondary.name) {
-      console.log("TB NO DATA:", json);
-      return null;
-    }
-
-    // 🔥 FIX: správné složení názvu
-    let visaName = primary.name || secondary.name;
-
-    if (primary.name && secondary.name) {
-      visaName = `${primary.name} / ${secondary.name}`;
-    }
-
-    let duration = primary.duration || secondary?.duration || "";
-    let color = primary.color || "yellow";
+    if (!primary?.name) return null;
 
     return {
-      visa_name: visaName,
-      visa_duration: duration,
-      visa_color: color,
-      source: "travel_buddy",
-      mandatory_registration: data.mandatory_registration || null
+      visa_name: primary.name,
+      visa_duration: primary.duration,
+      visa_color: primary.color || "yellow",
+      source: "travel_buddy"
     };
-
-  } catch (e) {
-    console.log("TRAVEL BUDDY ERROR:", e);
+  } catch {
+    return null;
   }
-
-  return null;
 }
+
 // =========================
 // FEEDBACK
 // =========================
-async function getFeedback(passport: string, country: string, url: string, key: string) {
+async function getFeedback(passport: string, destination: string, url: string, key: string) {
   try {
     const res = await fetch(
-      `${url}/rest/v1/feedback?passport=eq.${passport}&country=eq.${country}`,
+      `${url}/rest/v1/feedback?passport=eq.${passport}&country=eq.${destination}`,
       {
         headers: {
           apikey: key,
@@ -226,114 +256,61 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const body = await req.json();
+  const { passport, country: countryName } = await req.json();
+  const destination = toApiFormat(countryName);
 
-  const passport = body.passport;
-  const countryName = body.country;
-  const country = toApiFormat(countryName);
+  const url = Deno.env.get("PROJECT_URL")!;
+  const key = Deno.env.get("SERVICE_ROLE_KEY")!;
 
-  const url = Deno.env.get("PROJECT_URL");
-  const key = Deno.env.get("SERVICE_ROLE_KEY");
+  const existing = await getFromDB(url, key, passport, destination);
 
-  // =========================
-  // CACHE
-  // =========================
-  const cacheRes = await fetch(
-    `${url}/rest/v1/visa_cache?passport=eq.${passport}&country=eq.${country}&order=updated_at.desc&limit=1`,
-    {
-      headers: {
-        apikey: key!,
-        Authorization: `Bearer ${key}`
-      }
-    }
-  );
-
-  const cache = await cacheRes.json();
-
-  if (cache.length > 0) {
-    const cachedRow = cache[0];
-    const cached = cachedRow.data;
-
-    const updatedAt = new Date(cachedRow.updated_at).getTime();
-    const TTL = 30 * 24 * 60 * 60 * 1000;
-    const isExpired = Date.now() - updatedAt > TTL;
-
-    if (cached?.override === true && !isExpired) {
-      return new Response(JSON.stringify({
-        visa_name: mapStatusToName(cached.status),
-        visa_duration: cached.max_stay,
-        visa_color: mapStatusToColor(cached.status),
-        confidence: 1,
-        source: "admin_override",
-        generated_at: new Date().toISOString()
-      }), { headers: corsHeaders });
-    }
-
-    if (!isExpired) {
-      return new Response(JSON.stringify(cached), {
-        headers: corsHeaders
-      });
-    }
-  }
-
-// =========================
-// REAL DATA
-// =========================
-    const tb = await fetchTravelBuddy(passport, country);
-    const wiki = await fetchWikipedia(passport, countryName);
-    
-    const resultPicked = pickBestResult([tb, wiki]);
-    
-    let result = resultPicked;
-    
-    if (!result) {
-      result = {
-        visa_name: "Unknown",
-        visa_duration: "Není uvedeno",
-        visa_color: "yellow",
-        source: "fallback"
-      };
-    }
-    
-    result["source_priority"] =
-      result.source === "travel_buddy" ? "primary" : "fallback";
-  
-  // =========================
-  // CONFIDENCE
-  // =========================
-  const { pos, neg } = await getFeedback(passport, country, url!, key!);
-
-  let confidence = 0.6;
-  confidence = Math.max(0, Math.min(1, confidence - neg * 0.1 + pos * 0.05));
-
-  result["confidence"] = Number(confidence.toFixed(2));
-  result["generated_at"] = new Date().toISOString();
-
-  result.visa_duration = normalizeDuration(result.visa_duration);
-
-  // =========================
-  // SAVE CACHE
-  // =========================
-  if (result.source === "travel_buddy") {
-    await fetch(`${url}/rest/v1/visa_cache`, {
-      method: "POST",
-      headers: {
-        apikey: key!,
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        passport,
-        country,
-        country_name: countryName,
-        data: result
-      })
+  // override má absolutní prioritu
+  if (existing?.source === "override") {
+    return new Response(JSON.stringify(toResponse(existing, 1)), {
+      headers: corsHeaders
     });
-  } else {
-    console.log("CACHE SKIPPED (non-TB source):", result.source);
   }
 
-  return new Response(JSON.stringify(result), {
+ if (existing) {
+  // 🔥 background refresh (neblokuje response)
+
+
+  const { pos, neg } = await getFeedback(passport, destination, url, key);
+
+  let confidence = BASE_CONFIDENCE[existing.source] || 0.5;
+  confidence = confidence - neg * 0.1 + pos * 0.05;
+  confidence = Math.max(0, Math.min(1, confidence));
+
+  return new Response(JSON.stringify(toResponse(existing, confidence)), {
+    headers: corsHeaders
+  });
+}
+
+  let result =
+    await fetchTravelBuddy(passport, destination) ||
+    await fetchVisaList(passport, destination) ||
+    await fetchWikipedia(passport, countryName);
+
+  if (!result) {
+    result = {
+      visa_name: "Unknown",
+      visa_duration: "",
+      visa_color: "yellow",
+      source: "fallback"
+    };
+  }
+
+  if (result.source !== "fallback") {
+    await upsertDB(url, key, passport, destination, result);
+  }
+
+  const { pos, neg } = await getFeedback(passport, destination, url, key);
+
+  let confidence = BASE_CONFIDENCE[result.source] || 0.5;
+  confidence = confidence - neg * 0.1 + pos * 0.05;
+  confidence = Math.max(0, Math.min(1, confidence));
+
+  return new Response(JSON.stringify(toResponse(result, confidence)), {
     headers: corsHeaders
   });
 });
