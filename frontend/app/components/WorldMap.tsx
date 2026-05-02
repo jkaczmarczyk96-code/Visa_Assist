@@ -24,6 +24,8 @@ const colorMap: Record<string, string> = {
   red: "#ef4444"
 };
 
+const countryExists = true;
+
 type MapData = Record<string, any>;
 
 type Props = {
