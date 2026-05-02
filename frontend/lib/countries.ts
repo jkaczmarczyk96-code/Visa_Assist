@@ -291,18 +291,57 @@ export function getMzvSkLink(name: string) {
 }
 
 export const ISO3_TO_ISO2: Record<string, string> = {
-  CZE: "CZ",
-  SVK: "SK",
-  COD: "CD",
-  COG: "CG",
-  CAF: "CF",
-  DOM: "DO",
-  CIV: "CI",
+  // EUROPE
+  ALB: "AL", AND: "AD", AUT: "AT", BEL: "BE", BGR: "BG",
+  BIH: "BA", BLR: "BY", CHE: "CH", CYP: "CY", CZE: "CZ",
+  DEU: "DE", DNK: "DK", ESP: "ES", EST: "EE", FIN: "FI",
+  FRA: "FR", GBR: "GB", GRC: "GR", HRV: "HR", HUN: "HU",
+  IRL: "IE", ISL: "IS", ITA: "IT", LIE: "LI", LTU: "LT",
+  LUX: "LU", LVA: "LV", MCO: "MC", MDA: "MD", MKD: "MK",
+  MLT: "MT", MNE: "ME", NLD: "NL", NOR: "NO", POL: "PL",
+  PRT: "PT", ROU: "RO", RUS: "RU", SMR: "SM", SRB: "RS",
+  SVK: "SK", SVN: "SI", SWE: "SE", TUR: "TR", UKR: "UA",
+  VAT: "VA", XKX: "XK",
 
-  FRA: "FR",
-  DEU: "DE",
-  ESP: "ES",
-  ITA: "IT",
-  USA: "US",
-  GBR: "GB"
+  // AFRICA
+  DZA: "DZ", AGO: "AO", BEN: "BJ", BWA: "BW", BFA: "BF",
+  BDI: "BI", CMR: "CM", CPV: "CV", CAF: "CF", TCD: "TD",
+  COM: "KM", COG: "CG", COD: "CD", CIV: "CI", DJI: "DJ",
+  EGY: "EG", GNQ: "GQ", ERI: "ER", SWZ: "SZ", ETH: "ET",
+  GAB: "GA", GMB: "GM", GHA: "GH", GIN: "GN", GNB: "GW",
+  KEN: "KE", LSO: "LS", LBR: "LR", LBY: "LY", MDG: "MG",
+  MWI: "MW", MLI: "ML", MRT: "MR", MUS: "MU", MAR: "MA",
+  MOZ: "MZ", NAM: "NA", NER: "NE", NGA: "NG", RWA: "RW",
+  STP: "ST", SEN: "SN", SYC: "SC", SLE: "SL", SOM: "SO",
+  ZAF: "ZA", SSD: "SS", SDN: "SD", TZA: "TZ", TGO: "TG",
+  TUN: "TN", UGA: "UG", ZMB: "ZM", ZWE: "ZW",
+
+  // ASIA
+  AFG: "AF", ARM: "AM", AZE: "AZ", BGD: "BD", BTN: "BT",
+  BRN: "BN", KHM: "KH", CHN: "CN", GEO: "GE", HKG: "HK",
+  IND: "IN", IDN: "ID", IRN: "IR", IRQ: "IQ", ISR: "IL",
+  JPN: "JP", JOR: "JO", KAZ: "KZ", KWT: "KW", KGZ: "KG",
+  LAO: "LA", LBN: "LB", MAC: "MO", MYS: "MY", MDV: "MV",
+  MNG: "MN", MMR: "MM", NPL: "NP", PRK: "KP", KOR: "KR",
+  OMN: "OM", PAK: "PK", PSE: "PS", QAT: "QA", SAU: "SA",
+  SGP: "SG", LKA: "LK", SYR: "SY", TWN: "TW", TJK: "TJ",
+  THA: "TH", TLS: "TL", TKM: "TM", ARE: "AE", UZB: "UZ",
+  VNM: "VN", YEM: "YE",
+
+  // AMERICAS
+  ARG: "AR", BOL: "BO", BRA: "BR", CHL: "CL", COL: "CO",
+  ECU: "EC", GUY: "GY", PRY: "PY", PER: "PE", SUR: "SR",
+  URY: "UY", VEN: "VE",
+
+  CAN: "CA", USA: "US", MEX: "MX",
+
+  ATG: "AG", BHS: "BS", BRB: "BB", BLZ: "BZ", CRI: "CR",
+  CUB: "CU", DMA: "DM", DOM: "DO", GRD: "GD", GTM: "GT",
+  HTI: "HT", HND: "HN", JAM: "JM", NIC: "NI", PAN: "PA",
+  SLV: "SV", KNA: "KN", LCA: "LC", VCT: "VC", TTO: "TT",
+
+  // OCEANIA
+  AUS: "AU", NZL: "NZ", FJI: "FJ", PNG: "PG", SLB: "SB",
+  VUT: "VU", WSM: "WS", TON: "TO", TUV: "TV", KIR: "KI",
+  MHL: "MH", FSM: "FM", NRU: "NR", PLW: "PW", COK: "CK"
 };

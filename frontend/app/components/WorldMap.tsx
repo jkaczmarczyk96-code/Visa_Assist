@@ -6,6 +6,7 @@ import {
   Geography
 } from "react-simple-maps";
 import { useState } from "react";
+import { getCountry } from "../../lib/countries";
 import { getCountryByIso } from "../../lib/countries";
 import countries from "i18n-iso-countries";
 import en from "i18n-iso-countries/langs/en.json";
@@ -23,8 +24,6 @@ const colorMap: Record<string, string> = {
   yellow: "#eab308",
   red: "#ef4444"
 };
-
-const countryExists = true;
 
 type MapData = Record<string, any>;
 
@@ -52,10 +51,18 @@ export default function WorldMap({ data, onSelect }: Props) {
           {({ geographies }: { geographies: any[] }) =>
             geographies.map((geo: any) => {
               const iso3 = geo.id;
+              const name = geo?.properties?.name;
 
-              // ✅ AUTO převod ISO3 → ISO2
-              const iso2 = countries.alpha3ToAlpha2(iso3);
+              // 1. pokus přes ISO3
+              let iso2 = countries.alpha3ToAlpha2(iso3);
 
+              // 2. fallback přes název (kritické pro Congo, CAR, atd.)
+              if (!iso2 && name) {
+                const found = getCountry(name);
+                iso2 = found?.iso;
+              }
+
+              // 3. finální data
               const country = iso2 ? getCountryByIso(iso2) : null;
               const item = iso2 ? data?.[iso2] : null;
 
