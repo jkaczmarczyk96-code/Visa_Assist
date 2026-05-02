@@ -6,14 +6,7 @@ import {
   Geography
 } from "react-simple-maps";
 import { useState } from "react";
-import { getCountry } from "../../lib/countries";
-import { getCountryByIso } from "../../lib/countries";
-import countries from "i18n-iso-countries";
-import en from "i18n-iso-countries/langs/en.json";
 import React from "react";
-
-// 🔥 init knihovny
-countries.registerLocale(en);
 
 const geoUrl =
   "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
@@ -29,7 +22,7 @@ type MapData = Record<string, any>;
 
 type Props = {
   data: MapData;
-  onSelect: (name: string) => void;
+  onSelect: (iso3: string) => void;
 };
 
 export default function WorldMap({ data, onSelect }: Props) {
@@ -51,20 +44,8 @@ export default function WorldMap({ data, onSelect }: Props) {
           {({ geographies }: { geographies: any[] }) =>
             geographies.map((geo: any) => {
               const iso3 = geo.id;
-              const name = geo?.properties?.name;
 
-              // 1. pokus přes ISO3
-              let iso2 = countries.alpha3ToAlpha2(iso3);
-
-              // 2. fallback přes název (kritické pro Congo, CAR, atd.)
-              if (!iso2 && name) {
-                const found = getCountry(name);
-                iso2 = found?.iso;
-              }
-
-              // 3. finální data
-              const country = iso2 ? getCountryByIso(iso2) : null;
-              const item = iso2 ? data?.[iso2] : null;
+              const item = data?.[iso3];
 
               const fill = item
                 ? colorMap[item.visa_color] || "#475569"
@@ -74,16 +55,16 @@ export default function WorldMap({ data, onSelect }: Props) {
                 <Geography
                   key={geo.rsmKey}
                   geography={geo}
-                  fill={country ? fill : "#020617"}
+                  fill={fill}
                   stroke="#0e1117"
 
                   tabIndex={-1}
                   onMouseDown={(e: React.MouseEvent<SVGPathElement>) => e.preventDefault()}
 
                   onMouseEnter={() => {
-                    if (!country) return;
+                    if (!item) return;
                     setHovered({
-                      name: country.name,
+                      name: geo.properties.name,
                       visa: item?.visa_name,
                       color: item?.visa_color
                     });
@@ -92,17 +73,16 @@ export default function WorldMap({ data, onSelect }: Props) {
                   onMouseLeave={() => setHovered(null)}
 
                   onClick={() => {
-                    if (!country) return;
-                    onSelect(country.name);
+                    if (!item) return;
+                    onSelect(iso3);
                   }}
 
                   style={{
                     default: {
                       outline: "none",
-                      cursor: country ? "pointer" : "default",
-                      pointerEvents: country ? "auto" : "none"
+                      cursor: item ? "pointer" : "default"
                     },
-                    hover: country
+                    hover: item
                       ? {
                           fill: "#60a5fa",
                           cursor: "pointer"

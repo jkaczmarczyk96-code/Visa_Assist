@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js";
+import { ISO3_TO_ISO2 } from "../_shared/countries.ts";
+
+const ISO2_TO_ISO3 = Object.fromEntries(
+  Object.entries(ISO3_TO_ISO2).map(([iso3, iso2]) => [iso2, iso3])
+);
 
 serve(async () => {
   const supabase = createClient(
@@ -16,16 +21,20 @@ serve(async () => {
     return new Response(JSON.stringify({ error }), { status: 500 });
   }
 
-  // převedeme na mapu podle ISO2
-  const result: Record<string, any> = {};
+const result: Record<string, any> = {};
 
-  for (const row of data || []) {
-    result[row.destination] = {
-      visa_color: row.visa_color,
-      visa_name: row.visa_name,
-      visa_duration: row.visa_duration
-    };
-  }
+for (const row of data || []) {
+  const iso3 = ISO2_TO_ISO3[row.destination];
+
+  // pokud nemáme mapování, přeskočíme (zatím OK)
+  if (!iso3) continue;
+
+  result[iso3] = {
+    visa_color: row.visa_color,
+    visa_name: row.visa_name,
+    visa_duration: row.visa_duration
+  };
+}
 
   return new Response(JSON.stringify(result), {
     headers: {
