@@ -6,7 +6,7 @@ import {
   Geography
 } from "react-simple-maps";
 import { useState } from "react";
-import { getCountry } from "../../../shared/countries";
+import { getCountry } from "../../lib/countries";
 import React from "react";
 
 const geoUrl =

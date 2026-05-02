@@ -7,7 +7,7 @@ import {
   toApiFormat,
   getMzvCzLink,
   getMzvSkLink
-} from "../../shared/countries";
+} from "../lib/countries";
 import WorldMap from "./components/WorldMap";
 
 export default function Home() {
