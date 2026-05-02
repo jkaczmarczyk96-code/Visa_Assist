@@ -32,6 +32,8 @@ export default function WorldMap({ data, onSelect }: Props) {
     color?: string;
   } | null>(null);
 
+  console.log("MAP DATA:", data);
+
   return (
     <div style={{ marginTop: 30 }}>
       <ComposableMap
@@ -46,6 +48,8 @@ export default function WorldMap({ data, onSelect }: Props) {
               const iso3 = geo.id;
 
               const item = data?.[iso3];
+
+              console.log("ISO3:", iso3, "ITEM:", item);
 
               const fill = item
                 ? colorMap[item.visa_color] || "#475569"
