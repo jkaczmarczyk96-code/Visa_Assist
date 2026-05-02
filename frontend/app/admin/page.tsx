@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import { toApiFormat } from '../../lib/countries'
+import { toApiFormat, getCountryByIso } from '../../lib/countries'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,8 +40,17 @@ export default function AdminPage() {
 
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
+  const PAGE_SIZE = 20
+  const [feedbackPage, setFeedbackPage] = useState(0)
+  const [dbPage, setDbPage] = useState(0)
+
+  const [feedbackCount, setFeedbackCount] = useState(0)
+  const feedbackTotalPages = Math.max(1, Math.ceil(feedbackCount / PAGE_SIZE))
+
   const [tab, setTab] = useState<'feedback' | 'db'>('feedback')
   const [records, setRecords] = useState<any[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
   const [tbEnabled, setTbEnabled] = useState(false)
 
   const [user, setUser] = useState<any>(null)
@@ -54,12 +63,14 @@ export default function AdminPage() {
 
   const [showNegative, setShowNegative] = useState(false)
   const [showFlagged, setShowFlagged] = useState(false)
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null)
 
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  const [passportFilter, setPassportFilter] = useState<"ALL" | "CZ" | "SK">("ALL")
+  const [onlyIssues, setOnlyIssues] = useState(false)
 
   const [flagged, setFlagged] = useState<Record<string, number>>({})
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [countryFilter, setCountryFilter] = useState<string>("ALL")
 
   const isOverrideActive = (item: Feedback) => {
   const key = `${item.passport}-${toApiFormat(item.country)}`;
@@ -100,17 +111,47 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (user) fetchData()
-  }, [user, showNegative])
+  }, [user, showNegative, feedbackPage, dbPage, passportFilter, onlyIssues, countryFilter])
+
+  useEffect(() => {
+    setFeedbackPage(0)
+  }, [countryFilter, passportFilter, onlyIssues])
 
   const fetchData = async () => {
     setLoading(true)
 
-    let query = supabase.from('feedback').select('*').order('created_at', { ascending: false })
-    if (showNegative) query = query.eq('rating', 0)
+    let query = supabase
+      .from('feedback')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
 
-    const { data } = await query
+    if (showNegative) {
+      query = query.eq('rating', 0)
+    }
+
+    if (passportFilter !== "ALL") {
+      query = query.eq('passport', passportFilter)
+    }
+
+    if (countryFilter !== "ALL") {
+      query = query.eq('country', countryFilter)
+    }
+
+    const { data, error, count } = await query
+      .range(
+        feedbackPage * PAGE_SIZE,
+        feedbackPage * PAGE_SIZE + PAGE_SIZE - 1
+      )
+
+    if (error) {
+      console.error(error)
+      setLoading(false)
+      return
+    }
+
     const fb = (data || []) as Feedback[]
     setData(fb)
+    setFeedbackCount(count || 0)
 
     const counts: Record<string, number> = {}
 
@@ -139,13 +180,26 @@ export default function AdminPage() {
       setOverrides(map);
 
     // DB records
-    const { data: dbData } = await supabase
+    let dbQuery = supabase
       .from('visa_records')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('updated_at', { ascending: false })
-      .limit(100)
 
-    setRecords(dbData || [])
+      if (passportFilter !== "ALL") {
+        dbQuery = dbQuery.eq('passport', passportFilter)
+      }
+      if (onlyIssues) {
+        dbQuery = dbQuery.eq('needs_review', true)
+      }
+
+      const { data: dbData, count } = await dbQuery
+        .range(
+          dbPage * PAGE_SIZE,
+          dbPage * PAGE_SIZE + PAGE_SIZE - 1
+        )
+
+      setRecords(dbData || [])
+      setTotalCount(count || 0)
 
     // TB toggle
     const { data: cfg } = await supabase
@@ -352,27 +406,6 @@ export default function AdminPage() {
 
           <div style={divider} />
 
-          {selectedCountry && (
-            <div style={clearFilter} onClick={() => setSelectedCountry(null)}>
-              ✖ Zrušit filtr ({selectedCountry})
-            </div>
-          )}
-
-          <div style={chips}>
-            {topCountries.map(([c, n]: [string, number]) => (
-              <div
-                key={c}
-                onClick={() => setSelectedCountry(c)}
-                style={{
-                  ...chip,
-                  background: selectedCountry === c ? '#3b82f6' : '#1e293b'
-                }}
-              >
-                {c} ({n})
-              </div>
-            ))}
-          </div>
-
           <div style={days}>
             {last7Days.map((d, i) => (
               <div key={i} style={dayBox}>
@@ -385,6 +418,39 @@ export default function AdminPage() {
 
         {/* FILTERS */}
         <div style={filters}>
+          <select
+            style={input}
+            value={countryFilter}
+            onChange={e => setCountryFilter(e.target.value)}
+          >
+            <option value="ALL">Všechny státy</option>
+
+            {[...new Set(data.map(d => d.country))]
+              .sort()
+              .map(c => (
+                <option key={c} value={c}>
+                  {getCountryByIso(c)?.name || c}
+                </option>
+              ))}
+          </select>
+
+          <button
+            style={ghostBtn}
+            onClick={() => setOnlyIssues(!onlyIssues)}
+          >
+            ⚠️ Issues only
+          </button>
+          
+          <select
+            style={input}
+            value={passportFilter}
+            onChange={e => setPassportFilter(e.target.value as any)}
+          >
+            <option value="ALL">Vše</option>
+            <option value="CZ">CZ</option>
+            <option value="SK">SK</option>
+          </select>
+
           <button
             style={ghostBtn}
             onClick={() => setShowNegative(!showNegative)}
@@ -424,13 +490,20 @@ export default function AdminPage() {
             {/* LIST */}
               {tab === 'feedback' && (
                 <>
-                  {Object.entries(
-                    groupByDate(
-                      data.filter(item =>
-                        (!showFlagged || isFlagged(item)) &&
-                        (!selectedCountry || item.country === selectedCountry)
-                      )
-                    )
+                 {Object.entries(
+                     groupByDate(
+                        
+                          data.filter(item => {
+                            const matchesFlagged = !showFlagged || isFlagged(item)
+                            const matchesIssues = !onlyIssues || isFlagged(item)
+
+                            return (
+                              matchesFlagged &&
+                              matchesIssues
+                            )
+                          })
+                        )
+                    
                   ).map(([group, items]) => {
                     return (
                       <div key={group}>
@@ -505,7 +578,29 @@ export default function AdminPage() {
                       </div>
                     )
                   })}
-                </>
+                  
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 20 }}>
+                  <button
+                    style={ghostBtn}
+                    onClick={() => setFeedbackPage(p => Math.max(0, p - 1))}
+                    disabled={feedbackPage === 0}
+                  >
+                    ← Předchozí
+                  </button>
+
+                  <div>
+                    Stránka {feedbackPage + 1} / {feedbackTotalPages}
+                  </div>
+
+                  <button
+                    style={ghostBtn}
+                    onClick={() => setFeedbackPage(p => Math.min(feedbackTotalPages - 1, p + 1))}
+                    disabled={feedbackPage >= feedbackTotalPages - 1}
+                  >
+                    Další →
+                  </button>
+                </div>
+              </>
               )}
 
               {tab === 'db' && (
@@ -531,11 +626,14 @@ export default function AdminPage() {
                   </div>
 
                   {/* RECORDS */}
-                  {records.map(r => (
+                  {records
+                    .map(r => (
                     <div key={`${r.passport}-${r.destination}`} style={card}>
 
                       <div style={row}>
-                        <strong>{r.passport} → {r.destination}</strong>
+                        <strong>
+                          {r.passport} → {getCountryByIso(r.destination)?.name || r.destination}
+                        </strong>
 
                         <div style={{ display: 'flex', gap: 6 }}>
                           {r.needs_review && <span style={badgeWarn}>⚠️</span>}
@@ -582,10 +680,37 @@ export default function AdminPage() {
                         >
                           🔄 Refresh
                         </button>
-                      </div>
-
+                        
+                        </div>
                     </div>
                   ))}
+                  {records.length === 0 && (
+                    <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: 20 }}>
+                      Žádná data
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 20 }}>
+                        <button
+                          style={ghostBtn}
+                          onClick={() => setDbPage(p => Math.max(0, p - 1))}
+                          disabled={dbPage === 0}
+                        >
+                          ← Předchozí
+                        </button>
+
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          Stránka {dbPage + 1} / {totalPages}
+                        </div>
+
+                        <button
+                          style={ghostBtn}
+                          onClick={() => setDbPage(p => Math.min(totalPages - 1, p + 1))}
+                          disabled= {dbPage >= totalPages - 1}
+                        >
+                          Další →
+                        </button>
+                      </div>
                 </div>
               )}
             </div>
@@ -696,13 +821,6 @@ const divider: CSSProperties = {
   height: 1,
   background: '#334155',
   margin: '10px 0'
-}
-
-const chips: CSSProperties = {
-  display: 'flex',
-  gap: 8,
-  flexWrap: 'wrap',
-  marginTop: 10
 }
 
 const chip: CSSProperties = {
