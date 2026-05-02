@@ -137,7 +137,7 @@ export default function AdminPage() {
       query = query.eq('country', countryFilter)
     }
 
-    const { data, error, count } = await query
+    const { data, error, count: feedbackCountValue  } = await query
       .range(
         feedbackPage * PAGE_SIZE,
         feedbackPage * PAGE_SIZE + PAGE_SIZE - 1
@@ -151,7 +151,7 @@ export default function AdminPage() {
 
     const fb = (data || []) as Feedback[]
     setData(fb)
-    setFeedbackCount(count || 0)
+    setFeedbackCount(feedbackCountValue || 0)
 
     const counts: Record<string, number> = {}
 
@@ -192,14 +192,14 @@ export default function AdminPage() {
         dbQuery = dbQuery.eq('needs_review', true)
       }
 
-      const { data: dbData, count } = await dbQuery
+      const { data: dbData, count: dbCount } = await dbQuery
         .range(
           dbPage * PAGE_SIZE,
           dbPage * PAGE_SIZE + PAGE_SIZE - 1
         )
 
       setRecords(dbData || [])
-      setTotalCount(count || 0)
+      setTotalCount(dbCount || 0)
 
     // TB toggle
     const { data: cfg } = await supabase
