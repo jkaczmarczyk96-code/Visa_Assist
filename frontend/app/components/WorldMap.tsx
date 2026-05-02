@@ -9,7 +9,7 @@ import { useState } from "react";
 import React from "react";
 
 const geoUrl =
-  "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+  "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
 const colorMap: Record<string, string> = {
   green: "#22c55e",
@@ -45,7 +45,7 @@ export default function WorldMap({ data, onSelect }: Props) {
         <Geographies geography={geoUrl}>
           {({ geographies }: { geographies: any[] }) =>
             geographies.map((geo: any) => {
-              const iso3 = geo.id;
+              const iso3 = geo.id || geo.properties.ISO_A3;
 
               const item = data?.[iso3];
 
