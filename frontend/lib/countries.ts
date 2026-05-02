@@ -223,15 +223,36 @@ export const COUNTRIES = COUNTRIES_DATA.map(c => c.name).sort()
 
 // 🔧 NORMALIZE
 function normalize(str: string) {
-  return str.toLowerCase().trim().replace(/\s+/g, " ")
+  return str
+    .toLowerCase()
+    .replace(/\./g, "")   // 🔥 odstraní tečky (Rep. → Rep)
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 // 🔁 ALIASES (mapa / varianty názvů)
 const NAME_ALIASES: Record<string, string> = {
   "united states of america": "United States",
   "usa": "United States",
-  "uae": "United Arab Emirates"
-}
+  "uae": "United Arab Emirates",
+
+  // 🔥 KLÍČOVÉ PRO MAPU
+  "czechia": "Czech Republic",
+
+  "republic of the congo": "Congo Republic",
+  "congo": "Congo Republic",
+
+  "dem. rep. congo": "Democratic Republic of the Congo",
+  "democratic republic of congo": "Democratic Republic of the Congo",
+
+  "central african rep.": "Central African Republic",
+
+  "dominican rep.": "Dominican Republic",
+
+  "ivory coast": "Ivory Coast",
+  "côte d’ivoire": "Ivory Coast",
+  "cote d'ivoire": "Ivory Coast"
+};
 
 // 🔍 helpers
 export function getCountry(name: string) {
