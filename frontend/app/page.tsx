@@ -53,7 +53,7 @@ export default function Home() {
       },
       body: JSON.stringify({
         passport,
-        country: country?.iso
+        country: country?.name
       })
     });
 
