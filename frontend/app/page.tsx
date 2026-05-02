@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { Country } from "../lib/countries";
 import {
   COUNTRIES,
   toApiFormat,
@@ -14,7 +15,6 @@ export default function Home() {
   const router = useRouter();
 
   const [passport, setPassport] = useState<string | null>(null);
-  import type { Country } from "../lib/countries";
 
   const [country, setCountry] = useState<Country | null>(null);
 
