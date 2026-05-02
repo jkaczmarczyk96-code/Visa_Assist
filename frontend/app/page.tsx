@@ -14,7 +14,10 @@ export default function Home() {
   const router = useRouter();
 
   const [passport, setPassport] = useState<string | null>(null);
-  const [country, setCountry] = useState("");
+  import type { Country } from "../lib/countries";
+
+  const [country, setCountry] = useState<Country | null>(null);
+
   const [result, setResult] = useState<any>(null);
 
   // 🔥 MAP DATA (chybělo)
@@ -49,7 +52,7 @@ export default function Home() {
       },
       body: JSON.stringify({
         passport,
-        country: toApiFormat(country)
+        country: country?.iso
       })
     });
 
@@ -59,13 +62,16 @@ export default function Home() {
     // 🔥 MAP UPDATE
     setMapData((prev: any) => ({
       ...prev,
-      [country]: data
+      [country.iso]: data
     }));
   }
 
   // 🔥 CLICK Z MAPY
+  import { getCountry } from "../../shared/countries";
+
   function handleMapSelect(name: string) {
-    setCountry(name);
+    const c = getCountry(name);
+    if (c) setCountry(c);
   }
 
   async function sendFeedback(rating: number, text: string = "") {
@@ -108,8 +114,8 @@ export default function Home() {
 
   const mzvLink =
     passport === "SK"
-      ? getMzvSkLink(country)
-      : getMzvCzLink(country);
+      ? getMzvSkLink(country?.name || "" )
+      : getMzvCzLink(country?.name || "" );
 
   return (
     <div style={{
@@ -202,7 +208,7 @@ export default function Home() {
               cursor: "pointer"
             }}
           >
-            {country || "Vyber zemi"}
+            {country?.name || "Vyber zemi"}
           </div>
 
           {openCountry && (
@@ -216,6 +222,8 @@ export default function Home() {
               maxHeight: 220,
               overflowY: "auto"
             }}>
+              import { COUNTRIES } from "../lib/countries";
+
               {COUNTRIES.map(c => (
                 <div
                   key={c}
