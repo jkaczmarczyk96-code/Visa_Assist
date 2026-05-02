@@ -49,7 +49,8 @@ export default function WorldMap({ data, onSelect }: Props) {
               if (!name) return null;
 
               const countryExists = !!getCountry(name);
-              const item = data?.[name];
+              const country = getCountry(name);
+              const item = country ? data?.[country.iso] : null;
 
               const fill = item
                 ? colorMap[item.visa_color] || "#475569"

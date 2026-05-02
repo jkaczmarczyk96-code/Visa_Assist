@@ -53,7 +53,7 @@ export default function Home() {
       },
       body: JSON.stringify({
         passport,
-        country: country?.name
+        country: country?.iso
       })
     });
 
@@ -216,24 +216,25 @@ export default function Home() {
               background: "#111827",
               border: "1px solid #2a2f3a",
               borderRadius: 10,
-              position: "relative", 
-              zIndex: 20, 
+              position: "relative",
+              zIndex: 20,
               maxHeight: 220,
               overflowY: "auto"
             }}>
-
-              {COUNTRIES_DATA.map(c => (
-                <div
-                  key={c.iso}
-                  onClick={() => {
-                    setCountry(c);
-                    setOpenCountry(false);
-                  }}
-                  style={{ padding: 12, cursor: "pointer" }}
-                >
-                  {c.name}
-                </div>
-              ))}
+              {[...COUNTRIES_DATA]
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((c) => (
+                  <div
+                    key={c.iso}
+                    onClick={() => {
+                      setCountry(c);
+                      setOpenCountry(false);
+                    }}
+                    style={{ padding: 12, cursor: "pointer" }}
+                  >
+                    {c.name}
+                  </div>
+                ))}
             </div>
           )}
         </div>
