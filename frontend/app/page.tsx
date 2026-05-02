@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Country } from "../lib/countries";
+
 import {
-  COUNTRIES,
-  toApiFormat,
+  COUNTRIES_DATA,
+  getCountry,
   getMzvCzLink,
   getMzvSkLink
 } from "../lib/countries";
@@ -67,8 +68,6 @@ export default function Home() {
   }
 
   // 🔥 CLICK Z MAPY
-  import { getCountry } from "../../shared/countries";
-
   function handleMapSelect(name: string) {
     const c = getCountry(name);
     if (c) setCountry(c);
@@ -222,18 +221,17 @@ export default function Home() {
               maxHeight: 220,
               overflowY: "auto"
             }}>
-              import { COUNTRIES } from "../lib/countries";
 
-              {COUNTRIES.map(c => (
+              {COUNTRIES_DATA.map(c => (
                 <div
-                  key={c}
+                  key={c.iso}
                   onClick={() => {
                     setCountry(c);
                     setOpenCountry(false);
                   }}
                   style={{ padding: 12, cursor: "pointer" }}
                 >
-                  {c}
+                  {c.name}
                 </div>
               ))}
             </div>
@@ -274,7 +272,7 @@ export default function Home() {
               marginBottom: 16
             }} />
 
-            <h2 style={{ marginBottom: 12 }}>{country}</h2>
+            <h2 style={{ marginBottom: 12 }}>{country?.name}</h2>
 
             {/* STATUS BADGE */}
             <div style={{
