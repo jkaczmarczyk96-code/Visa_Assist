@@ -6,8 +6,13 @@ import {
   Geography
 } from "react-simple-maps";
 import { useState } from "react";
-import { getCountry } from "../../lib/countries";
+import { getCountryByIso } from "../../lib/countries";
+import countries from "i18n-iso-countries";
+import en from "i18n-iso-countries/langs/en.json";
 import React from "react";
+
+// 🔥 init knihovny
+countries.registerLocale(en);
 
 const geoUrl =
   "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
@@ -44,13 +49,13 @@ export default function WorldMap({ data, onSelect }: Props) {
         <Geographies geography={geoUrl}>
           {({ geographies }: { geographies: any[] }) =>
             geographies.map((geo: any) => {
-              const name = geo?.properties?.name;
+              const iso3 = geo.id;
 
-              if (!name) return null;
+              // ✅ AUTO převod ISO3 → ISO2
+              const iso2 = countries.alpha3ToAlpha2(iso3);
 
-              const countryExists = !!getCountry(name);
-              const country = getCountry(name);
-              const item = country ? data?.[country.iso] : null;
+              const country = iso2 ? getCountryByIso(iso2) : null;
+              const item = iso2 ? data?.[iso2] : null;
 
               const fill = item
                 ? colorMap[item.visa_color] || "#475569"
@@ -60,51 +65,43 @@ export default function WorldMap({ data, onSelect }: Props) {
                 <Geography
                   key={geo.rsmKey}
                   geography={geo}
-                  fill={countryExists ? fill : "#020617"} // neaktivní státy
+                  fill={country ? fill : "#020617"}
                   stroke="#0e1117"
 
-                  // ❌ odstranění bílého rámečku (focus)
                   tabIndex={-1}
-                  onMouseDown={(e: React.MouseEvent<SVGPathElement>) =>
-                    e.preventDefault()
-                  }
+                  onMouseDown={(e: React.MouseEvent<SVGPathElement>) => e.preventDefault()}
 
                   onMouseEnter={() => {
-                    if (!countryExists) return;
+                    if (!country) return;
                     setHovered({
-                      name,
+                      name: country.name,
                       visa: item?.visa_name,
                       color: item?.visa_color
                     });
                   }}
 
-                  onMouseLeave={() => {
-                    if (!countryExists) return;
-                    setHovered(null);
-                  }}
+                  onMouseLeave={() => setHovered(null)}
 
                   onClick={() => {
-                    if (!countryExists) return;
-                    onSelect(name);
+                    if (!country) return;
+                    onSelect(country.name);
                   }}
 
                   style={{
                     default: {
                       outline: "none",
-                      cursor: countryExists ? "pointer" : "default",
-                      pointerEvents: countryExists ? "auto" : "none" // 🧠 BONUS
+                      cursor: country ? "pointer" : "default",
+                      pointerEvents: country ? "auto" : "none"
                     },
-
-                    hover: countryExists
+                    hover: country
                       ? {
                           fill: "#60a5fa",
                           cursor: "pointer"
                         }
                       : {
-                          fill: "#020617", // žádná změna
+                          fill: "#020617",
                           cursor: "default"
                         },
-
                     pressed: {
                       outline: "none"
                     }

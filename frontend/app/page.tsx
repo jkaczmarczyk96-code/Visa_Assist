@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Country } from "../lib/countries";
 
@@ -23,6 +23,32 @@ export default function Home() {
 
   // 🔥 MAP DATA (chybělo)
   const [mapData, setMapData] = useState<any>({});
+
+  useEffect(() => {
+  loadMapData();
+    }, []);
+
+    async function loadMapData() {
+      try {
+        const res = await fetch(
+          "https://vimpzdcfqmujbgcfkwlz.functions.supabase.co/map",
+          {
+            headers: {
+              "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+              "apikey": process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            }
+          }
+        );
+
+        const data = await res.json();
+
+        console.log("MAP DATA:", data); // debug
+
+        setMapData(data);
+      } catch (e) {
+        console.error("Map preload error:", e);
+      }
+    }
 
   const [openCountry, setOpenCountry] = useState(false);
   const [error, setError] = useState("");
@@ -61,10 +87,12 @@ export default function Home() {
     setResult(data);
 
     // 🔥 MAP UPDATE
-    setMapData((prev: any) => ({
-      ...prev,
-      [country.iso]: data
-    }));
+    if (country) {
+      setMapData((prev: any) => ({
+        ...prev,
+        [country.iso]: data
+      }));
+    }
   }
 
   // 🔥 CLICK Z MAPY

@@ -289,3 +289,20 @@ export function getMzvSkLink(name: string) {
   if (!c) return null
   return `https://www.mzv.sk/web/sk/${c.sk}`
 }
+
+export const ISO3_TO_ISO2: Record<string, string> = {
+  CZE: "CZ",
+  SVK: "SK",
+  COD: "CD",
+  COG: "CG",
+  CAF: "CF",
+  DOM: "DO",
+  CIV: "CI",
+
+  FRA: "FR",
+  DEU: "DE",
+  ESP: "ES",
+  ITA: "IT",
+  USA: "US",
+  GBR: "GB"
+};
