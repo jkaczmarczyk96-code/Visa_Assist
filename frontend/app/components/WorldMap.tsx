@@ -21,7 +21,7 @@ const colorMap: Record<string, string> = {
 
 const VISA_COLOR_MAP: Record<string, string> = {
   "Visa-free": "#22c55e",
-  "Visa waiver": "#22c55e",
+  "Visa waiver": "#3b82f6",
 
   "Visa on Arrival": "#3b82f6",
   "eVisa": "#3b82f6",
@@ -56,7 +56,15 @@ export default function WorldMap({ data, onSelect }: Props) {
         <Geographies geography={geoUrl}>
           {({ geographies }: { geographies: any[] }) =>
             geographies.map((geo: any) => {
-              const iso3 = geo.id || geo.properties.ISO_A3;
+              let iso3 = geo.id || geo.properties.ISO_A3;
+
+              // 🔥 fallback fixy (reálně potřeba jen pár států)
+              if (geo.properties.name === "South Sudan") iso3 = "SSD";
+              if (geo.properties.name === "Congo") iso3 = "COG";
+              if (geo.properties.name === "Democratic Republic of the Congo") iso3 = "COD";
+              if (geo.properties.name === "Central African Republic") iso3 = "CAF";
+              if (geo.properties.name === "Ivory Coast") iso3 = "CIV";
+              if (geo.properties.name === "Dominican Republic") iso3 = "DOM";
 
               // 🔥 ISO3 → ISO2
               const iso2 = ISO3_TO_ISO2[iso3];
