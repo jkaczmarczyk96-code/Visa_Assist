@@ -18,6 +18,18 @@ const colorMap: Record<string, string> = {
   red: "#ef4444"
 };
 
+const VISA_COLOR_MAP: Record<string, string> = {
+  "Visa-free": "#22c55e",
+  "Visa waiver": "#22c55e",
+
+  "Visa on Arrival": "#3b82f6",
+  "eVisa": "#3b82f6",
+
+  "Registration required": "#eab308",
+
+  "Visa required": "#ef4444"
+};
+
 type MapData = Record<string, any>;
 
 type Props = {
