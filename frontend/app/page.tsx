@@ -25,13 +25,15 @@ export default function Home() {
   const [mapData, setMapData] = useState<any>({});
 
   useEffect(() => {
-  loadMapData();
-    }, []);
+    if (!passport) return;
 
-    async function loadMapData() {
+    loadMapData(passport);
+  }, [passport]);
+
+    async function loadMapData(passport: string) {
       try {
         const res = await fetch(
-          "https://vimpzdcfqmujbgcfkwlz.functions.supabase.co/map",
+          `https://vimpzdcfqmujbgcfkwlz.functions.supabase.co/map?passport=${passport}`,
           {
             headers: {
               "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,

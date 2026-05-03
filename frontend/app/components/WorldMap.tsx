@@ -52,7 +52,7 @@ export default function WorldMap({ data, onSelect }: Props) {
               console.log("ISO3:", iso3, "ITEM:", item);
 
               const fill = item
-                ? colorMap[item.visa_color] || "#475569"
+                ? VISA_COLOR_MAP[item.visa_name] || "#475569"
                 : "#475569";
 
               return (
